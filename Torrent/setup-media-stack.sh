@@ -7,7 +7,7 @@ echo "Setting up Media Stack with Podman Compose..."
 echo "Creating media directories on TrueNAS..."
 sudo mkdir -p /mnt/truenas/{downloads/{complete,incomplete},torrents,media/{tv,movies,music}}
 
-# Set proper permissions (adjust UID/GID as needed - 1000:1000 is common)
+#Set proper permissions (adjust UID/GID as needed - 1000:1000 is common)
 echo "Setting permissions..."
 sudo chown -R 1000:1000 /mnt/truenas/
 sudo chmod -R 755 /mnt/truenas/
