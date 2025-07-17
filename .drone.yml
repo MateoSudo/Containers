@@ -14,7 +14,7 @@ trigger:
 
 steps:
   # =============================================================================
-  # SSH KEY GENERATION (MANUAL SETUP)
+  # SSH KEY GENERATION (MANUAL SETUP-updated)
   # =============================================================================
   - name: generate-deploy-key
     image: alpine:latest
