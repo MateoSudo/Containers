@@ -32,12 +32,12 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=America/New_York  # Change to your timezone
+      - TZ=America/Chicago  # Central Time Zone
       - WEBUI_PORT=8080
     volumes:
       - qbittorrent-config:/config
-      - ./downloads:/downloads
-      - ./torrents:/torrents
+      - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/torrents:/torrents
     ports:
       - "8080:8080"
     network_mode: service:pia-vpn
@@ -52,11 +52,11 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=America/New_York  # Change to your timezone
+      - TZ=America/Chicago  # Central Time Zone
     volumes:
       - sonarr-config:/config
-      - ./tv:/tv
-      - ./downloads:/downloads
+      - /mnt/truenas/media/tv:/tv
+      - /mnt/truenas/downloads:/downloads
     ports:
       - "8989:8989"
     restart: unless-stopped
@@ -70,11 +70,10 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=America/New_York  # Change to your timezone
-    volumes:
+      - TZ=America/Chicago  # Central Time Zone    volumes:
       - radarr-config:/config
-      - ./movies:/movies
-      - ./downloads:/downloads
+      - /mnt/truenas/media/movies:/movies
+      - /mnt/truenas/downloads:/downloads
     ports:
       - "7878:7878"
     restart: unless-stopped
@@ -88,11 +87,11 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=America/New_York  # Change to your timezone
+      - TZ=America/Chicago  # Central Time Zone
     volumes:
       - lidarr-config:/config
-      - ./music:/music
-      - ./downloads:/downloads
+      - /mnt/truenas/media/music:/music
+      - /mnt/truenas/downloads:/downloads
     ports:
       - "8686:8686"
     restart: unless-stopped
@@ -106,7 +105,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=America/New_York  # Change to your timezone
+      - TZ=America/Chicago  # Central Time Zone
     volumes:
       - prowlarr-config:/config
     ports:
@@ -122,12 +121,12 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=America/New_York  # Change to your timezone
+      - TZ=America/Chicago  # Central Time Zone
     volumes:
       - jellyfin-config:/config
-      - ./tv:/data/tvshows
-      - ./movies:/data/movies
-      - ./music:/data/music
+      - /mnt/truenas/media/tv:/data/tvshows
+      - /mnt/truenas/media/movies:/data/movies
+      - /mnt/truenas/media/music:/data/music
     ports:
       - "8096:8096"
     restart: unless-stopped
