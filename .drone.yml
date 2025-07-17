@@ -1,7 +1,7 @@
 kind: pipeline
 type: docker
 name: test
-#Testing fixed GitHub config!
+#Testing fixed GitHub config! installed runner
 steps:
 - name: hello
   image: alpine
