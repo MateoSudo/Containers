@@ -1,11 +1,11 @@
 kind: pipeline
 type: docker
 name: test
-#Tbasic test for drone
+#Basic test for drone - DNS fixed!
 steps:
 - name: hello
   image: alpine
   commands:
-  - echo "Hello from Drone! Build test 2"
+  - echo "Hello from Drone! DNS is working!"
   - pwd
   - ls -la
