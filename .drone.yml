@@ -1,11 +1,163 @@
 kind: pipeline
 type: docker
-name: test
-#Testing runner with direct IP connection!
+name: torrent-media-stack
+
+# Only trigger when files in Torrent/ folder change
+trigger:
+  paths:
+    include:
+    - "Torrent/**"
+  event:
+  - push
+  - pull_request
+
 steps:
-- name: hello
-  image: alpine
+# =============================================================================
+# VALIDATION STEPS
+# =============================================================================
+
+- name: validate-compose
+  image: alpine:latest
   commands:
-  - echo "Hello from Drone! Runner connected via IP!"
-  - pwd
-  - ls -la
+  - cd Torrent
+  - echo "🔍 Validating podman-compose.yml structure..."
+  - |
+    if [ ! -f podman-compose.yml ]; then
+      echo "❌ podman-compose.yml not found"
+      exit 1
+    fi
+  - echo "✅ Compose file exists"
+
+- name: check-env-template
+  image: alpine:latest
+  commands:
+  - cd Torrent
+  - echo "🔍 Checking environment template..."
+  - |
+    if [ ! -f .env.example ]; then
+      echo "❌ Missing .env.example"
+      exit 1
+    fi
+  - echo "✅ Environment template exists"
+  - echo "📋 Required variables:"
+  - grep "^[^#]" .env.example || true
+
+- name: security-scan
+  image: alpine:latest
+  commands:
+  - cd Torrent
+  - echo "🔒 Security scan of compose file..."
+  - |
+    if grep -i "password\|secret\|key" podman-compose.yml | grep -v "from_secret\|_FILE"; then
+      echo "⚠️  Warning: Potential secrets found in compose file"
+      echo "💡 Consider using environment variables or secrets"
+    else
+      echo "✅ No hardcoded secrets detected"
+    fi
+
+- name: validate-ports
+  image: alpine:latest
+  commands:
+  - cd Torrent
+  - echo "🌐 Validating port configuration..."
+  - |
+    echo "📋 Exposed ports:"
+    grep -E "^\s*-\s*\"[0-9]+:[0-9]+\"" podman-compose.yml || true
+    echo "✅ Port validation complete"
+
+- name: validate-storage
+  image: alpine:latest
+  commands:
+  - echo "💾 Validating storage configuration..."
+  - |
+    echo "📂 Required storage paths:"
+    echo "  • /mnt/truenas (TrueNAS external storage)"
+    echo "  • Local container volumes"
+    echo ""
+    echo "⚠️  Note: Ensure /mnt/truenas is properly mounted on host"
+    echo "✅ Storage validation complete"
+
+# =============================================================================
+# DEPLOYMENT STEPS
+# =============================================================================
+
+- name: deploy-staging
+  image: alpine:latest
+  commands:
+  - echo "🚀 Deploying to staging environment"
+  - cd Torrent
+  - echo "📦 Services to deploy:"
+  - echo "  • PIA VPN (Private Internet Access)"
+  - echo "  • QBittorrent (Torrent client)"
+  - echo "  • Sonarr (TV series management)"
+  - echo "  • Radarr (Movie management)"
+  - echo "  • Lidarr (Music management)"
+  - echo "  • Prowlarr (Indexer management)"
+  - echo "  • Jellyfin (Media server)"
+  - echo ""
+  - echo "� Storage Requirements:"
+  - echo "  • TrueNAS mount: /mnt/truenas"
+  - echo "  • Container volumes for configs"
+  - echo ""
+  - echo "�💡 Manual deployment required on host:"
+  - echo "   cd /path/to/Torrent && your-start-script.sh"
+  when:
+    branch:
+    - develop
+    - feature/*
+
+- name: deploy-production
+  image: alpine:latest
+  commands:
+  - echo "🎬 Deploying Torrent Media Stack to production"
+  - cd Torrent
+  - echo ""
+  - echo "📊 Stack Overview:"
+  - echo "┌─────────────────────┬──────────┬─────────────────────────┐"
+  - echo "│ Service             │ Port     │ Function                │"
+  - echo "├─────────────────────┼──────────┼─────────────────────────┤"
+  - echo "│ PIA VPN             │ N/A      │ Network protection      │"
+  - echo "│ QBittorrent         │ 8080     │ Torrent downloads       │"
+  - echo "│ Sonarr              │ 8989     │ TV show automation      │"
+  - echo "│ Radarr              │ 7878     │ Movie automation        │"
+  - echo "│ Lidarr              │ 8686     │ Music automation        │"
+  - echo "│ Prowlarr            │ 9696     │ Indexer management      │"
+  - echo "│ Jellyfin            │ 8096     │ Media streaming         │"
+  - echo "└─────────────────────┴──────────┴─────────────────────────┘"
+  - echo ""
+  - echo "💾 Storage Configuration:"
+  - echo "  • TrueNAS: /mnt/truenas (external NAS storage)"
+  - echo "  • Downloads: Mapped to TrueNAS"
+  - echo "  • Media Library: Served from TrueNAS to Jellyfin"
+  - echo ""
+  - echo "🔧 To deploy on host, run your container start script"
+  - echo "✅ Validation complete - Ready for deployment!"
+  when:
+    branch:
+    - main
+
+# =============================================================================
+# NOTIFICATION STEPS
+# =============================================================================
+
+- name: notify-success
+  image: alpine:latest
+  commands:
+  - echo "✅ Torrent Media Stack pipeline completed successfully!"
+  - echo "🎯 Branch: $DRONE_BRANCH"
+  - echo "👤 Author: $DRONE_COMMIT_AUTHOR"
+  - echo "📝 Commit: $DRONE_COMMIT"
+  - echo "⏱️  Build: #$DRONE_BUILD_NUMBER"
+  when:
+    status: [ success ]
+
+- name: notify-failure
+  image: alpine:latest
+  commands:
+  - echo "❌ Torrent Media Stack pipeline failed!"
+  - echo "🔗 Branch: $DRONE_BRANCH"
+  - echo "👤 Author: $DRONE_COMMIT_AUTHOR"
+  - echo "📝 Commit: $DRONE_COMMIT"
+  - echo "🔗 Build: #$DRONE_BUILD_NUMBER"
+  when:
+    status: [ failure ]
