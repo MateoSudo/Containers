@@ -47,7 +47,7 @@ steps:
           echo "ERROR: podman-compose.yml not found"
           exit 1
         fi
-      - echo "SUCCESS: Compose file exists"
+        echo "SUCCESS: Compose file exists"
 
   - name: check-env-template
     image: alpine:latest
@@ -59,7 +59,6 @@ steps:
           echo "ERROR: Missing .env.example"
           exit 1
         fi
-      - |
         echo "SUCCESS: Environment template exists"
         echo "Required variables:"
         grep "^[^#]" .env.example || true
@@ -117,8 +116,9 @@ steps:
       - echo "Jellyfin (Media server)"
       - echo ""
       - echo "Storage Requirements:"
-      - echo "TrueNAS mount: /mnt/truenas"
-      - echo "Container volumes for configs"
+      - |
+        echo "TrueNAS mount: /mnt/truenas"
+        echo "Container volumes for configs"
       - echo ""
       - echo "Manual deployment required on host:"
       - echo "cd /var/lib/containers/Torrent && ./start-stack.sh"
@@ -145,8 +145,9 @@ steps:
       - echo ""
       - echo "Storage Configuration:"
       - echo "Truenas /mnt/truenas (external NAS storage)"
-      - echo "Downloads: Mapped to TrueNAS"
-      - echo "Media Library: Served from TrueNAS to Jellyfin"
+      - |
+        echo "Downloads: Mapped to TrueNAS"
+        echo "Media Library: Served from TrueNAS to Jellyfin"
       - echo ""
       - echo "To deploy on host, run your container start script"
       - echo "Validation complete - Ready for deployment!"
