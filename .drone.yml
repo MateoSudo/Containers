@@ -1,11 +1,11 @@
 kind: pipeline
 type: docker
 name: test
-#Testing fixed GitHub config! installed runner
+#Testing runner with direct IP connection!
 steps:
 - name: hello
   image: alpine
   commands:
-  - echo "Hello from Drone! GitHub config fixed!"
+  - echo "Hello from Drone! Runner connected via IP!"
   - pwd
   - ls -la
