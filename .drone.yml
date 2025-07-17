@@ -15,9 +15,6 @@ volumes:
   - name: podman-socket
     host:
       path: /run/podman/podman.sock
-  - name: torrent-path
-    host:
-      path: /home/matthew/Git/Containers/Torrent
 
 steps:
   # =============================================================================
@@ -167,25 +164,24 @@ steps:
     volumes:
       - name: podman-socket
         path: /run/podman/podman.sock
-      - name: torrent-path
-        path: /var/lib/containers/Torrent
     commands:
-      - apk add --no-cache curl
+      - apk add --no-cache podman
       - echo "Deploying torrent stack directly via Podman socket..."
-      - cd /var/lib/containers/Torrent
+      - cd /drone/src/Torrent
+      - ls -la
       - |
         if [ -f ./start-stack.sh ]; then
           chmod +x ./start-stack.sh
           ./start-stack.sh
-        else
+        elif [ -f ./setup-media-stack.sh ]; then
           echo "start-stack.sh not found, running setup script..."
-          if [ -f ./setup-media-stack.sh ]; then
-            chmod +x ./setup-media-stack.sh
-            ./setup-media-stack.sh
-          else
-            echo "No deployment scripts found!"
-            exit 1
-          fi
+          chmod +x ./setup-media-stack.sh
+          ./setup-media-stack.sh
+        else
+          echo "No deployment scripts found in $(pwd)"
+          echo "Available files:"
+          ls -la
+          exit 1
         fi
     when:
       branch:
