@@ -70,7 +70,8 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=America/Chicago  # Central Time Zone    volumes:
+      - TZ=America/Chicago  # Central Time Zone
+    volumes:
       - radarr-config:/config
       - /mnt/truenas/media/movies:/movies
       - /mnt/truenas/downloads:/downloads
