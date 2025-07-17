@@ -3,15 +3,14 @@
 # Media Stack Setup Script for Podman Compose
 echo "Setting up Media Stack with Podman Compose..."
 
-# Create necessary directories
-echo "Creating media directories..."
-mkdir -p downloads/{complete,incomplete,torrents}
-mkdir -p tv movies music
+# Create necessary directories on TrueNAS mount
+echo "Creating media directories on TrueNAS..."
+sudo mkdir -p /mnt/truenas/{downloads/{complete,incomplete},torrents,media/{tv,movies,music}}
 
 # Set proper permissions (adjust UID/GID as needed - 1000:1000 is common)
 echo "Setting permissions..."
-sudo chown -R 1000:1000 downloads tv movies music
-chmod -R 755 downloads tv movies music
+sudo chown -R 1000:1000 /mnt/truenas/
+sudo chmod -R 755 /mnt/truenas/
 
 # Check if .env file exists
 if [ ! -f .env ]; then
@@ -36,14 +35,14 @@ fi
 
 echo ""
 echo "📁 Directory structure created:"
-echo "   downloads/ - QBittorrent downloads"
-echo "   tv/ - TV shows library"
-echo "   movies/ - Movies library"
-echo "   music/ - Music library"
+echo "   /mnt/truenas/downloads/ - QBittorrent downloads"
+echo "   /mnt/truenas/media/tv/ - TV shows library"
+echo "   /mnt/truenas/media/movies/ - Movies library"
+echo "   /mnt/truenas/media/music/ - Music library"
 echo ""
 echo "🚀 Next steps:"
 echo "1. Edit .env file with your PIA credentials: nano .env"
-echo "2. Adjust timezone in podman-compose.yml if needed (currently set to America/New_York)"
+echo "2. Timezone is set to America/Chicago (Central Time)"
 echo "3. Start the stack: podman-compose up -d"
 echo ""
 echo "🌐 Services will be available at:"
@@ -55,3 +54,7 @@ echo "   - Prowlarr (Indexers): http://localhost:9696"
 echo "   - Jellyfin (Media Server): http://localhost:8096"
 echo ""
 echo "📖 Default QBittorrent login: admin/adminadmin (change after first login)"
+echo ""
+echo "🔧 For Drone CI/CD integration in subfolders:"
+echo "   Create .drone.yml in each subfolder with path-based triggers"
+echo "   Example: see DRONE_SUBFOLDER_GUIDE.md"
