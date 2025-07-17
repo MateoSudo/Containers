@@ -1,0 +1,196 @@
+kind: pipeline
+type: docker
+name: test
+
+steps:
+- name: hello
+  image: alpine
+  commands:
+  - echo "Hello from Drone! Build test 2"
+  - pwd
+  - ls -la
+  - if [ ! -f .env.example ]; then echo "❌ Missing .env.example"; exit 1; fi
+  - echo "✅ Torrent environment template exists"
+  when:
+    paths:
+      include:
+      - "Torrent/**"
+
+- name: torrent-security-scan
+  image: alpine:latest
+  commands:
+  - cd Torrent
+  - echo "🔍 Checking for secrets in compose file..."
+  - |
+    if grep -q "password\|secret" podman-compose.yml; then
+      echo "⚠️  Warning: Potential secrets found in compose file"
+    else
+      echo "✅ No hardcoded secrets detected"
+    fi
+  when:
+    paths:
+      include:
+      - "Torrent/**"
+
+- name: torrent-deploy-staging
+  image: alpine:latest
+  commands:
+  - echo "🚀 Would deploy Torrent stack to staging environment"
+  - cd Torrent
+  - echo "podman-compose -f podman-compose.yml up -d"
+  when:
+    branch:
+    - develop
+    - feature/*
+    paths:
+      include:
+      - "Torrent/**"
+
+- name: torrent-deploy-production
+  image: alpine:latest
+  commands:
+  - echo "🚀 Deploying Torrent stack to production environment"
+  - cd Torrent
+  - echo "podman-compose -f podman-compose.yml up -d"
+  # Add actual deployment commands here
+  when:
+    branch:
+    - main
+    paths:
+      include:
+      - "Torrent/**"
+
+# =============================================================================
+# WEBAPP PIPELINE (Future)
+# =============================================================================
+
+- name: webapp-install-dependencies
+  image: node:18-alpine
+  commands:
+  - cd WebApp
+  - npm install
+  - echo "✅ WebApp dependencies installed"
+  when:
+    paths:
+      include:
+      - "WebApp/**"
+
+- name: webapp-test
+  image: node:18-alpine
+  commands:
+  - cd WebApp
+  - npm test
+  - echo "✅ WebApp tests passed"
+  when:
+    paths:
+      include:
+      - "WebApp/**"
+
+- name: webapp-build
+  image: node:18-alpine
+  commands:
+  - cd WebApp
+  - npm run build
+  - echo "✅ WebApp built successfully"
+  when:
+    paths:
+      include:
+      - "WebApp/**"
+
+- name: webapp-deploy
+  image: alpine:latest
+  commands:
+  - echo "🚀 Deploying WebApp..."
+  - cd WebApp
+  # Add deployment commands here
+  when:
+    branch:
+    - main
+    paths:
+      include:
+      - "WebApp/**"
+
+# =============================================================================
+# DATABASE PIPELINE (Future)
+# =============================================================================
+
+- name: database-validate
+  image: postgres:15-alpine
+  commands:
+  - cd Database
+  - echo "🔍 Validating database scripts..."
+  # Add validation commands here
+  when:
+    paths:
+      include:
+      - "Database/**"
+
+- name: database-migrate
+  image: postgres:15-alpine
+  commands:
+  - cd Database
+  - echo "🚀 Running database migrations..."
+  # Add migration commands here
+  when:
+    branch:
+    - main
+    paths:
+      include:
+      - "Database/**"
+
+# =============================================================================
+# DOCKER PIPELINE (Future)
+# =============================================================================
+
+- name: docker-build
+  image: docker:latest
+  commands:
+  - cd Docker
+  - echo "🐳 Building Docker images..."
+  # Add Docker build commands here
+  when:
+    paths:
+      include:
+      - "Docker/**"
+
+# =============================================================================
+# NOTIFICATION STEPS
+# =============================================================================
+
+- name: notify-success
+  image: plugins/slack
+  settings:
+    webhook:
+      from_secret: slack_webhook
+    channel: deployments
+    template: >
+      ✅ **Containers Repository** build completed successfully!
+      
+      🔗 **Branch**: {{build.branch}}
+      👤 **Author**: {{build.author}}
+      📝 **Commit**: {{truncate build.commit 8}}
+      ⏱️ **Duration**: {{since build.started}}
+  when:
+    status: [ success ]
+
+- name: notify-failure
+  image: plugins/slack
+  settings:
+    webhook:
+      from_secret: slack_webhook
+    channel: deployments
+    template: >
+      ❌ **Containers Repository** build failed!
+      
+      🔗 **Branch**: {{build.branch}}
+      👤 **Author**: {{build.author}}
+      📝 **Commit**: {{truncate build.commit 8}}
+      🔗 **Build**: {{build.link}}
+      ⏱️ **Duration**: {{since build.started}}
+  when:
+    status: [ failure ]
+
+---
+kind: secret
+name: slack_webhook
+data: your_encrypted_slack_webhook_here
