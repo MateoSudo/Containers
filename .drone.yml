@@ -6,11 +6,18 @@ name: torrent-media-stack
 trigger:
   paths:
     include:
-    - "Torrent/**"
+      - "Torrent/**"
   event:
-  - push
-  - pull_request
+    - push
+    - pull_request
 
+volumes:
+  - name: podman-socket
+    host:
+      path: /run/podman/podman.sock
+  - name: torrent-path
+    host:
+      path: /home/matthew/Git/Containers/Torrent
 
 steps:
   # =============================================================================
@@ -156,16 +163,30 @@ steps:
         - main
 
   - name: deploy-on-host
-    image: appleboy/drone-ssh
-    settings:
-      host: 127.0.0.1
-      username: root
-      port: 22
-      key:
-        from_secret: DEPLOY_KEY
-      script:
-        - cd /var/lib/containers/Torrent
-        - ./start-stack.sh
+    image: alpine:latest
+    volumes:
+      - name: podman-socket
+        path: /run/podman/podman.sock
+      - name: torrent-path
+        path: /var/lib/containers/Torrent
+    commands:
+      - apk add --no-cache curl
+      - echo "Deploying torrent stack directly via Podman socket..."
+      - cd /var/lib/containers/Torrent
+      - |
+        if [ -f ./start-stack.sh ]; then
+          chmod +x ./start-stack.sh
+          ./start-stack.sh
+        else
+          echo "start-stack.sh not found, running setup script..."
+          if [ -f ./setup-media-stack.sh ]; then
+            chmod +x ./setup-media-stack.sh
+            ./setup-media-stack.sh
+          else
+            echo "No deployment scripts found!"
+            exit 1
+          fi
+        fi
     when:
       branch:
         - main
