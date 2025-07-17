@@ -1,33 +1,22 @@
 kind: pipeline
 type: docker
-name: containers-monorepo
-
-# Global trigger for any changes in the repo
-trigger:
-  event:
-  - push
-  - pull_request
+name: containers-test
 
 steps:
-# =============================================================================
-# TORRENT MEDIA STACK PIPELINE
-# =============================================================================
-
-- name: torrent-validate-compose
-  image: docker/compose:latest
-  commands:
-  - cd Torrent
-  - docker-compose config
-  - echo "✅ Torrent compose file is valid"
-  when:
-    paths:
-      include:
-      - "Torrent/**"
-
-- name: torrent-check-env-template
+- name: hello-world
   image: alpine:latest
   commands:
+  - echo "🎉 Drone CI/CD is working!"
+  - echo "Repository Containers"
+  - ls -la
+
+- name: check-torrent
+  image: alpine:latest
+  commands:
+  - echo "Checking Torrent directory"
+  - ls -la Torrent/
   - cd Torrent
+  - ls -la
   - if [ ! -f .env.example ]; then echo "❌ Missing .env.example"; exit 1; fi
   - echo "✅ Torrent environment template exists"
   when:
