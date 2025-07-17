@@ -165,18 +165,18 @@ steps:
       - name: podman-socket
         path: /run/podman/podman.sock
     commands:
-      - apk add --no-cache podman
+      - apk add --no-cache podman bash
       - echo "Deploying torrent stack directly via Podman socket..."
       - cd /drone/src/Torrent
       - ls -la
       - |
         if [ -f ./start-stack.sh ]; then
           chmod +x ./start-stack.sh
-          ./start-stack.sh
+          bash ./start-stack.sh
         elif [ -f ./setup-media-stack.sh ]; then
           echo "start-stack.sh not found, running setup script..."
           chmod +x ./setup-media-stack.sh
-          ./setup-media-stack.sh
+          bash ./setup-media-stack.sh
         else
           echo "No deployment scripts found in $(pwd)"
           echo "Available files:"
