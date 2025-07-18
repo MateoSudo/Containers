@@ -39,68 +39,57 @@ steps:
         - manual
 
   # =============================================================================
-  # VALIDATION STEPS1
+  # VALIDATION STEPS
   # =============================================================================
-  - name: validate-compose
+  - name: validate-all
     image: alpine:latest
     commands:
       - cd Torrent
-      - echo "Validating podman-compose.yml structure..."
+      - echo "🔍 Running comprehensive validation..."
+      - echo ""
+      - echo "1. Validating podman-compose.yml structure..."
       - |
         if [ ! -f podman-compose.yml ]; then
-          echo "ERROR: podman-compose.yml not found"
+          echo "❌ ERROR: podman-compose.yml not found"
           exit 1
         fi
-        echo "SUCCESS: Compose file exists"
-
-  - name: check-env-template
-    image: alpine:latest
-    commands:
-      - cd Torrent
-      - echo "Checking environment template..."
+        echo "✅ SUCCESS: Compose file exists"
+      - echo ""
+      - echo "2. Checking environment template..."
       - |
         if [ ! -f .env.example ]; then
-          echo "ERROR: Missing .env.example"
+          echo "❌ ERROR: Missing .env.example"
           exit 1
         fi
-        echo "SUCCESS: Environment template exists"
+        echo "✅ SUCCESS: Environment template exists"
         echo "Required variables:"
         grep "^[^#]" .env.example || true
-
-  - name: security-scan
-    image: alpine:latest
-    commands:
-      - cd Torrent
-      - echo "Security scan of compose file..."
+      - echo ""
+      - echo "3. Security scan of compose file..."
       - |
         if grep -i "password\|secret\|key" podman-compose.yml | grep -v "from_secret\|_FILE"; then
-          echo "WARNING: Potential secrets found in compose file"
+          echo "⚠️  WARNING: Potential secrets found in compose file"
           echo "Consider using environment variables or secrets"
         else
-          echo "SUCCESS: No hardcoded secrets detected"
+          echo "✅ SUCCESS: No hardcoded secrets detected"
         fi
-
-  - name: validate-ports
-    image: alpine:latest
-    commands:
-      - cd Torrent
-      - echo "Validating port configuration..."
+      - echo ""
+      - echo "4. Validating port configuration..."
       - |
         echo "Exposed ports:"
         grep -E "^\s*-\s*\"[0-9]+:[0-9]+\"" podman-compose.yml || true
-        echo "Port validation complete"
-
-  - name: validate-storage
-    image: alpine:latest
-    commands:
-      - echo "Validating storage configuration..."
+        echo "✅ Port validation complete"
+      - echo ""
+      - echo "5. Validating storage configuration..."
       - |
         echo "Required storage paths:"
         echo "/mnt/truenas (TrueNAS external storage)"
         echo "Local container volumes"
         echo ""
         echo "NOTE: Ensure /mnt/truenas is properly mounted on host"
-        echo "Storage validation complete"
+        echo "✅ Storage validation complete"
+      - echo ""
+      - echo "🎉 All validations passed successfully!"
 
   # =============================================================================
   # DEPLOYMENT STEPS
