@@ -59,7 +59,7 @@ steps:
       - echo ""
       - echo "3. Security scan..."
       - |
-        if grep -i "password\|secret\|key" podman-compose.yml | grep -v "from_secret\|_FILE\|\${.*}" | grep -q .; then
+        if grep -i "password\|secret\|key" podman-compose.yml | grep -v "from_secret\|_FILE\|\$${.*}" | grep -q .; then
           echo "[WARNING] Potential hardcoded secrets detected"
           echo "Consider using environment variables or secrets"
         else
@@ -174,10 +174,10 @@ steps:
       - |
         # Stop existing containers gracefully
         for container in pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin; do
-          if podman ps -a --format "{{.Names}}" | grep -q "^${container}$"; then
-            echo "  Stopping $container..."
-            podman stop $container 2>/dev/null || true
-            podman rm $container 2>/dev/null || true
+          if podman ps -a --format "{{.Names}}" | grep -q "^$${container}$"; then
+            echo "  Stopping $$container..."
+            podman stop $$container 2>/dev/null || true
+            podman rm $$container 2>/dev/null || true
           fi
         done
         echo "[SUCCESS] Cleanup complete"
