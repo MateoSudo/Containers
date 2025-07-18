@@ -140,7 +140,7 @@ steps:
       - echo "Stack Overview:"
       - echo "Service             | Port     | Function"
       - echo "PIA VPN             | N/A      | Network protection"
-      - echo "QBittorrent         | 8080     | Torrent downloads"
+      - echo "QBittorrent         | 8083     | Torrent downloads"
       - echo "Sonarr              | 8989     | TV show automation"
       - echo "Radarr              | 7878     | Movie automation"
       - echo "Lidarr              | 8686     | Music automation"

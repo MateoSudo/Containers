@@ -33,13 +33,13 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/Chicago  # Central Time Zone
-      - WEBUI_PORT=8080
+      - WEBUI_PORT=8083
     volumes:
       - qbittorrent-config:/config
       - /mnt/truenas/downloads:/downloads
       - /mnt/truenas/torrents:/torrents
     ports:
-      - "8080:8080"
+      - "8083:8083"
     network_mode: service:pia-vpn
     depends_on:
       - pia-vpn
@@ -146,3 +146,9 @@ volumes:
 networks:
   media-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: media-br0
