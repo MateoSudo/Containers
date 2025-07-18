@@ -148,7 +148,7 @@ steps:
     commands:
       - echo "[INFO] Starting Production Deployment..."
       - apk add --no-cache podman bash python3 py3-pip podman-compose
-      - cd /drone/src/Torrent
+      - cd Torrent
       - echo ""
       - echo "[INFO] Available files:"
       - ls -la
