@@ -147,8 +147,7 @@ steps:
         path: /run/podman/podman.sock
     commands:
       - echo "[INFO] Starting Production Deployment..."
-      - apk add --no-cache podman bash python3 py3-pip
-      - pip3 install podman-compose
+      - apk add --no-cache podman bash python3 py3-pip podman-compose
       - cd /drone/src/Torrent
       - echo ""
       - echo "[INFO] Available files:"
