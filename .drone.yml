@@ -24,80 +24,80 @@ steps:
     image: alpine:latest
     commands:
       - cd Torrent
-      - echo "🔍 Running comprehensive validation and preparation..."
+      - echo "[INFO] Running comprehensive validation and preparation..."
       - echo ""
       - echo "1. Validating podman-compose.yml structure..."
       - |
         if [ ! -f podman-compose.yml ]; then
-          echo "❌ ERROR: podman-compose.yml not found"
+          echo "[ERROR] podman-compose.yml not found"
           exit 1
         fi
-        echo "✅ SUCCESS: Compose file exists"
+        echo "[SUCCESS] Compose file exists"
         
         # Quick syntax validation
         if grep -q "version:" podman-compose.yml && grep -q "services:" podman-compose.yml; then
-          echo "✅ SUCCESS: Basic YAML structure valid"
+          echo "[SUCCESS] Basic YAML structure valid"
         else
-          echo "❌ ERROR: Invalid compose file structure"
+          echo "[ERROR] Invalid compose file structure"
           exit 1
         fi
       - echo ""
       - echo "2. Environment configuration check..."
       - |
         if [ ! -f .env.example ]; then
-          echo "❌ ERROR: Missing .env.example template"
+          echo "[ERROR] Missing .env.example template"
           exit 1
         fi
-        echo "✅ SUCCESS: Environment template exists"
+        echo "[SUCCESS] Environment template exists"
         
         # Check for required variables
         if grep -q "PIA_USER\|PIA_PASS" .env.example; then
-          echo "✅ SUCCESS: Required PIA variables found in template"
+          echo "[SUCCESS] Required PIA variables found in template"
         else
-          echo "⚠️  WARNING: PIA credentials not found in template"
+          echo "[WARNING] PIA credentials not found in template"
         fi
       - echo ""
       - echo "3. Security scan..."
       - |
         if grep -i "password\|secret\|key" podman-compose.yml | grep -v "from_secret\|_FILE\|\${.*}" | grep -q .; then
-          echo "⚠️  WARNING: Potential hardcoded secrets detected"
+          echo "[WARNING] Potential hardcoded secrets detected"
           echo "Consider using environment variables or secrets"
         else
-          echo "✅ SUCCESS: No hardcoded secrets detected"
+          echo "[SUCCESS] No hardcoded secrets detected"
         fi
       - echo ""
       - echo "4. Port configuration validation..."
       - |
         echo "Configured ports:"
         grep -E '^\s*-\s*"[0-9]+:[0-9]+"' podman-compose.yml | sed 's/.*"\([0-9]*\):\([0-9]*\)".*/  \1 -> \2/' || echo "  No direct port mappings found"
-        echo "✅ Port validation complete"
+        echo "[SUCCESS] Port validation complete"
       - echo ""
       - echo "5. Storage and network validation..."
       - |
         echo "Storage requirements:"
         if grep -q "/mnt/truenas" podman-compose.yml; then
-          echo "  ✅ TrueNAS storage mapping found"
+          echo "  [SUCCESS] TrueNAS storage mapping found"
         else
-          echo "  ⚠️  No TrueNAS storage mapping detected"
+          echo "  [WARNING] No TrueNAS storage mapping detected"
         fi
         
         echo "Network configuration:"
         if grep -q "networks:" podman-compose.yml; then
-          echo "  ✅ Custom networks configured"
+          echo "  [SUCCESS] Custom networks configured"
         else
-          echo "  ⚠️  Using default network"
+          echo "  [WARNING] Using default network"
         fi
-        echo "✅ Storage and network validation complete"
+        echo "[SUCCESS] Storage and network validation complete"
       - echo ""
       - echo "6. Service availability check..."
       - |
         echo "Configured services:"
         grep -E "^\s*[a-zA-Z][a-zA-Z0-9_-]*:" podman-compose.yml | sed 's/://g' | sed 's/^/  - /' || echo "  No services found"
-        echo "✅ Service configuration validated"
+        echo "[SUCCESS] Service configuration validated"
       - echo ""
-      - echo "🎉 All validations passed successfully!"
+      - echo "[SUCCESS] All validations passed successfully!"
       - echo ""
-      - echo "📋 Deployment Summary:"
+      - echo "[INFO] Deployment Summary:"
       - echo "Stack - Torrent Media Stack with VPN Protection"
       - echo "Services - PIA VPN, QBittorrent, Sonarr, Radarr, Lidarr, Prowlarr, Jellyfin"
       - echo "Storage - TrueNAS external mount + container volumes"
@@ -110,7 +110,7 @@ steps:
     image: alpine:latest
     commands:
       - cd Torrent
-      - echo "📋 Staging Environment Overview"
+      - echo "[INFO] Staging Environment Overview"
       - echo ""
       - echo "Services Configuration:"
       - echo "  PIA VPN         | N/A      | Network protection & routing"
@@ -122,15 +122,15 @@ steps:
       - echo "  Jellyfin        | 8096     | Media streaming server"
       - echo ""
       - echo "Network Architecture:"
-      - echo "  Internet ← VPN ← PIA Container ← QBittorrent (protected)"
-      - echo "  Internet ← Host Network ← Other Services (direct)"
+      - echo "  Internet <- VPN <- PIA Container <- QBittorrent (protected)"
+      - echo "  Internet <- Host Network <- Other Services (direct)"
       - echo ""
       - echo "Storage Layout:"
-      - echo "  /mnt/truenas/downloads/ → QBittorrent downloads"
-      - echo "  /mnt/truenas/media/     → Jellyfin library source"
-      - echo "  Container volumes       → Service configurations"
+      - echo "  /mnt/truenas/downloads/ -> QBittorrent downloads"
+      - echo "  /mnt/truenas/media/     -> Jellyfin library source"
+      - echo "  Container volumes       -> Service configurations"
       - echo ""
-      - echo "⚠️  Staging - Manual deployment required"
+      - echo "[WARNING] Staging - Manual deployment required"
       - echo "   Command - podman-compose -f podman-compose.yml up -d"
     when:
       branch:
@@ -146,31 +146,31 @@ steps:
       - name: podman-socket
         path: /run/podman/podman.sock
     commands:
-      - echo "🚀 Starting Production Deployment..."
+      - echo "[INFO] Starting Production Deployment..."
       - apk add --no-cache podman bash python3 py3-pip
       - pip3 install podman-compose
       - cd /drone/src/Torrent
       - echo ""
-      - echo "📁 Available files:"
+      - echo "[INFO] Available files:"
       - ls -la
       - echo ""
-      - echo "🔧 Preparing deployment..."
+      - echo "[INFO] Preparing deployment..."
       - |
         # Create .env from template if it doesn't exist
         if [ ! -f .env ]; then
           if [ -f .env.example ]; then
             cp .env.example .env
-            echo "✅ Created .env from template"
-            echo "⚠️  Please ensure PIA credentials are configured in .env"
+            echo "[SUCCESS] Created .env from template"
+            echo "[WARNING] Please ensure PIA credentials are configured in .env"
           else
-            echo "❌ ERROR: No .env.example template found"
+            echo "[ERROR] No .env.example template found"
             exit 1
           fi
         else
-          echo "✅ .env file already exists"
+          echo "[SUCCESS] .env file already exists"
         fi
       - echo ""
-      - echo "🛑 Stopping existing containers..."
+      - echo "[INFO] Stopping existing containers..."
       - |
         # Stop existing containers gracefully
         for container in pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin; do
@@ -180,35 +180,35 @@ steps:
             podman rm $container 2>/dev/null || true
           fi
         done
-        echo "✅ Cleanup complete"
+        echo "[SUCCESS] Cleanup complete"
       - echo ""
-      - echo "🏗️  Creating required directories..."
+      - echo "[INFO] Creating required directories..."
       - |
         # Create directories on host (if TrueNAS is mounted)
         mkdir -p /mnt/truenas/downloads/complete 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
         mkdir -p /mnt/truenas/downloads/incomplete 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
         mkdir -p /mnt/truenas/media/{tv,movies,music} 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
-        echo "✅ Directory structure prepared"
+        echo "[SUCCESS] Directory structure prepared"
       - echo ""
-      - echo "🚀 Starting Torrent Media Stack..."
+      - echo "[INFO] Starting Torrent Media Stack..."
       - |
         if command -v podman-compose >/dev/null 2>&1; then
           echo "Using podman-compose for deployment..."
           podman-compose up -d
         else
-          echo "⚠️  podman-compose not available, using fallback script..."
+          echo "[WARNING] podman-compose not available, using fallback script..."
           if [ -f ./start-stack.sh ]; then
             chmod +x ./start-stack.sh
             bash ./start-stack.sh
           else
-            echo "❌ ERROR: No deployment method available"
+            echo "[ERROR] No deployment method available"
             exit 1
           fi
         fi
       - echo ""
-      - echo "✅ Deployment completed!"
+      - echo "[SUCCESS] Deployment completed!"
       - echo ""
-      - echo "🌐 Service Access URLs:"
+      - echo "[INFO] Service Access URLs:"
       - echo "  QBittorrent - http://localhost:8083"
       - echo "  Sonarr - http://localhost:8989"
       - echo "  Radarr - http://localhost:7878"
@@ -216,8 +216,8 @@ steps:
       - echo "  Prowlarr - http://localhost:9696"
       - echo "  Jellyfin - http://localhost:8096"
       - echo ""
-      - echo "🔐 Default QBittorrent credentials - admin/adminadmin"
-      - echo "⚠️  Change default passwords after first login!"
+      - echo "[INFO] Default QBittorrent credentials - admin/adminadmin"
+      - echo "[WARNING] Change default passwords after first login!"
     when:
       branch:
         - main
@@ -228,9 +228,9 @@ steps:
   - name: notify-success
     image: alpine:latest
     commands:
-      - echo "✅ Torrent Media Stack Pipeline - SUCCESS"
+      - echo "[SUCCESS] Torrent Media Stack Pipeline - SUCCESS"
       - echo ""
-      - echo "📊 Build Information:"
+      - echo "[INFO] Build Information:"
       - echo "  Branch    - $DRONE_BRANCH"
       - echo "  Author    - $DRONE_COMMIT_AUTHOR"
       - echo "  Commit    - $DRONE_COMMIT"
@@ -239,11 +239,11 @@ steps:
       - echo ""
       - |
         if [ "$DRONE_BRANCH" = "main" ]; then
-          echo "🚀 Production deployment completed successfully!"
-          echo "🌐 Services should now be accessible via web interfaces"
-          echo "🔒 VPN protection active for torrent traffic"
+          echo "[SUCCESS] Production deployment completed successfully!"
+          echo "[INFO] Services should now be accessible via web interfaces"
+          echo "[INFO] VPN protection active for torrent traffic"
         else
-          echo "📋 Validation completed - ready for production deployment"
+          echo "[INFO] Validation completed - ready for production deployment"
         fi
     when:
       status:
@@ -252,17 +252,17 @@ steps:
   - name: notify-failure
     image: alpine:latest
     commands:
-      - echo "❌ Torrent Media Stack Pipeline - FAILED"
+      - echo "[FAILED] Torrent Media Stack Pipeline - FAILED"
       - echo ""
-      - echo "📊 Build Information:"
+      - echo "[INFO] Build Information:"
       - echo "  Branch    - $DRONE_BRANCH"
       - echo "  Author    - $DRONE_COMMIT_AUTHOR"
       - echo "  Commit    - $DRONE_COMMIT"
       - echo "  Build     - #$DRONE_BUILD_NUMBER"
       - echo "  Timestamp - $(date)"
       - echo ""
-      - echo "🔍 Check the build logs for detailed error information"
-      - echo "💡 Common issues:"
+      - echo "[INFO] Check the build logs for detailed error information"
+      - echo "[INFO] Common issues:"
       - echo "  - Missing .env.example file"
       - echo "  - Invalid podman-compose.yml syntax"
       - echo "  - Podman socket connection issues"
