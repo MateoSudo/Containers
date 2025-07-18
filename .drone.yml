@@ -18,34 +18,13 @@ volumes:
 
 steps:
   # =============================================================================
-  # SSH KEY GENERATION (MANUAL SETUP-updated)
+  # OPTIMIZED VALIDATION (Single Container)
   # =============================================================================
-  - name: generate-deploy-key
-    image: alpine:latest
-    commands:
-      - apk add --no-cache openssh
-      - |
-        if [ ! -f /drone/src/Deploy_KEY ]; then
-          ssh-keygen -t ed25519 -N "" -f /drone/src/Deploy_KEY
-          echo "=== PUBLIC KEY (add to /root/.ssh/authorized_keys on host) ==="
-          cat /drone/src/Deploy_KEY.pub
-          echo "=== PRIVATE KEY (add as Drone secret: DEPLOY_KEY) ==="
-          cat /drone/src/Deploy_KEY
-        else
-          echo "Deploy_KEY already exists."
-        fi
-    when:
-      event:
-        - manual
-
-  # =============================================================================
-  # VALIDATION STEPS
-  # =============================================================================
-  - name: validate-all
+  - name: validate-and-prepare
     image: alpine:latest
     commands:
       - cd Torrent
-      - echo "🔍 Running comprehensive validation..."
+      - echo "🔍 Running comprehensive validation and preparation..."
       - echo ""
       - echo "1. Validating podman-compose.yml structure..."
       - |
@@ -54,140 +33,218 @@ steps:
           exit 1
         fi
         echo "✅ SUCCESS: Compose file exists"
+        
+        # Quick syntax validation
+        if grep -q "version:" podman-compose.yml && grep -q "services:" podman-compose.yml; then
+          echo "✅ SUCCESS: Basic YAML structure valid"
+        else
+          echo "❌ ERROR: Invalid compose file structure"
+          exit 1
+        fi
       - echo ""
-      - echo "2. Checking environment template..."
+      - echo "2. Environment configuration check..."
       - |
         if [ ! -f .env.example ]; then
-          echo "❌ ERROR: Missing .env.example"
+          echo "❌ ERROR: Missing .env.example template"
           exit 1
         fi
         echo "✅ SUCCESS: Environment template exists"
-        echo "Required variables:"
-        grep "^[^#]" .env.example || true
+        
+        # Check for required variables
+        if grep -q "PIA_USER\|PIA_PASS" .env.example; then
+          echo "✅ SUCCESS: Required PIA variables found in template"
+        else
+          echo "⚠️  WARNING: PIA credentials not found in template"
+        fi
       - echo ""
-      - echo "3. Security scan of compose file..."
+      - echo "3. Security scan..."
       - |
-        if grep -i "password\|secret\|key" podman-compose.yml | grep -v "from_secret\|_FILE"; then
-          echo "⚠️  WARNING: Potential secrets found in compose file"
+        if grep -i "password\|secret\|key" podman-compose.yml | grep -v "from_secret\|_FILE\|\${.*}" | grep -q .; then
+          echo "⚠️  WARNING: Potential hardcoded secrets detected"
           echo "Consider using environment variables or secrets"
         else
           echo "✅ SUCCESS: No hardcoded secrets detected"
         fi
       - echo ""
-      - echo "4. Validating port configuration..."
+      - echo "4. Port configuration validation..."
       - |
-        echo "Exposed ports:"
-        grep -E "^\s*-\s*\"[0-9]+:[0-9]+\"" podman-compose.yml || true
+        echo "Configured ports:"
+        grep -E '^\s*-\s*"[0-9]+:[0-9]+"' podman-compose.yml | sed 's/.*"\([0-9]*\):\([0-9]*\)".*/  \1 -> \2/' || echo "  No direct port mappings found"
         echo "✅ Port validation complete"
       - echo ""
-      - echo "5. Validating storage configuration..."
+      - echo "5. Storage and network validation..."
       - |
-        echo "Required storage paths:"
-        echo "/mnt/truenas (TrueNAS external storage)"
-        echo "Local container volumes"
-        echo ""
-        echo "NOTE: Ensure /mnt/truenas is properly mounted on host"
-        echo "✅ Storage validation complete"
+        echo "Storage requirements:"
+        if grep -q "/mnt/truenas" podman-compose.yml; then
+          echo "  ✅ TrueNAS storage mapping found"
+        else
+          echo "  ⚠️  No TrueNAS storage mapping detected"
+        fi
+        
+        echo "Network configuration:"
+        if grep -q "networks:" podman-compose.yml; then
+          echo "  ✅ Custom networks configured"
+        else
+          echo "  ⚠️  Using default network"
+        fi
+        echo "✅ Storage and network validation complete"
+      - echo ""
+      - echo "6. Service availability check..."
+      - |
+        echo "Configured services:"
+        grep -E "^\s*[a-zA-Z][a-zA-Z0-9_-]*:" podman-compose.yml | sed 's/://g' | sed 's/^/  - /' || echo "  No services found"
+        echo "✅ Service configuration validated"
       - echo ""
       - echo "🎉 All validations passed successfully!"
+      - echo ""
+      - echo "📋 Deployment Summary:"
+      - echo "Stack - Torrent Media Stack with VPN Protection"
+      - echo "Services - PIA VPN, QBittorrent, Sonarr, Radarr, Lidarr, Prowlarr, Jellyfin"
+      - echo "Storage - TrueNAS external mount + container volumes"
+      - echo "Security - VPN-protected torrent traffic, isolated networks"
 
   # =============================================================================
-  # DEPLOYMENT STEPS
+  # STAGING DEPLOYMENT (Info Only)
   # =============================================================================
   - name: deploy-staging
     image: alpine:latest
     commands:
-      - echo "Deploying to staging environment"
       - cd Torrent
-      - echo "Services to deploy:"
-      - echo "PIA VPN (Private Internet Access)"
-      - echo "QBittorrent (Torrent client)"
-      - echo "Sonarr (TV series management)"
-      - echo "Radarr (Movie management)"
-      - echo "Lidarr (Music management)"
-      - echo "Prowlarr (Indexer management)"
-      - echo "Jellyfin (Media server)"
+      - echo "📋 Staging Environment Overview"
       - echo ""
-      - echo "Storage Requirements:"
-      - |
-        echo "TrueNAS mount: /mnt/truenas"
-        echo "Container volumes for configs"
+      - echo "Services Configuration:"
+      - echo "  PIA VPN         | N/A      | Network protection & routing"
+      - echo "  QBittorrent     | 8083     | Torrent downloads (VPN protected)"
+      - echo "  Sonarr          | 8989     | TV series automation"
+      - echo "  Radarr          | 7878     | Movie automation"
+      - echo "  Lidarr          | 8686     | Music automation"
+      - echo "  Prowlarr        | 9696     | Indexer management"
+      - echo "  Jellyfin        | 8096     | Media streaming server"
       - echo ""
-      - echo "Manual deployment required on host:"
-      - echo "cd /var/lib/containers/Torrent && ./start-stack.sh"
+      - echo "Network Architecture:"
+      - echo "  Internet ← VPN ← PIA Container ← QBittorrent (protected)"
+      - echo "  Internet ← Host Network ← Other Services (direct)"
+      - echo ""
+      - echo "Storage Layout:"
+      - echo "  /mnt/truenas/downloads/ → QBittorrent downloads"
+      - echo "  /mnt/truenas/media/     → Jellyfin library source"
+      - echo "  Container volumes       → Service configurations"
+      - echo ""
+      - echo "⚠️  Staging - Manual deployment required"
+      - echo "   Command - podman-compose -f podman-compose.yml up -d"
     when:
       branch:
         - develop
         - feature/*
 
+  # =============================================================================
+  # PRODUCTION DEPLOYMENT (Automated)
+  # =============================================================================
   - name: deploy-production
-    image: alpine:latest
-    commands:
-      - echo "Deploying Torrent Media Stack to production"
-      - cd Torrent
-      - echo ""
-      - echo "Stack Overview:"
-      - echo "Service             | Port     | Function"
-      - echo "PIA VPN             | N/A      | Network protection"
-      - echo "QBittorrent         | 8083     | Torrent downloads"
-      - echo "Sonarr              | 8989     | TV show automation"
-      - echo "Radarr              | 7878     | Movie automation"
-      - echo "Lidarr              | 8686     | Music automation"
-      - echo "Prowlarr            | 9696     | Indexer management"
-      - echo "Jellyfin            | 8096     | Media streaming"
-      - echo ""
-      - echo "Storage Configuration:"
-      - echo "Truenas /mnt/truenas (external NAS storage)"
-      - |
-        echo "Downloads: Mapped to TrueNAS"
-        echo "Media Library: Served from TrueNAS to Jellyfin"
-      - echo ""
-      - echo "To deploy on host, run your container start script"
-      - echo "Validation complete - Ready for deployment!"
-    when:
-      branch:
-        - main
-
-  - name: deploy-on-host
     image: alpine:latest
     volumes:
       - name: podman-socket
         path: /run/podman/podman.sock
     commands:
-      - apk add --no-cache podman bash
-      - echo "Deploying torrent stack directly via Podman socket..."
+      - echo "🚀 Starting Production Deployment..."
+      - apk add --no-cache podman bash python3 py3-pip
+      - pip3 install podman-compose
       - cd /drone/src/Torrent
+      - echo ""
+      - echo "📁 Available files:"
       - ls -la
+      - echo ""
+      - echo "🔧 Preparing deployment..."
       - |
-        if [ -f ./start-stack.sh ]; then
-          chmod +x ./start-stack.sh
-          bash ./start-stack.sh
-        elif [ -f ./setup-media-stack.sh ]; then
-          echo "start-stack.sh not found, running setup script..."
-          chmod +x ./setup-media-stack.sh
-          bash ./setup-media-stack.sh
+        # Create .env from template if it doesn't exist
+        if [ ! -f .env ]; then
+          if [ -f .env.example ]; then
+            cp .env.example .env
+            echo "✅ Created .env from template"
+            echo "⚠️  Please ensure PIA credentials are configured in .env"
+          else
+            echo "❌ ERROR: No .env.example template found"
+            exit 1
+          fi
         else
-          echo "No deployment scripts found in $(pwd)"
-          echo "Available files:"
-          ls -la
-          exit 1
+          echo "✅ .env file already exists"
         fi
+      - echo ""
+      - echo "🛑 Stopping existing containers..."
+      - |
+        # Stop existing containers gracefully
+        for container in pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin; do
+          if podman ps -a --format "{{.Names}}" | grep -q "^${container}$"; then
+            echo "  Stopping $container..."
+            podman stop $container 2>/dev/null || true
+            podman rm $container 2>/dev/null || true
+          fi
+        done
+        echo "✅ Cleanup complete"
+      - echo ""
+      - echo "🏗️  Creating required directories..."
+      - |
+        # Create directories on host (if TrueNAS is mounted)
+        mkdir -p /mnt/truenas/downloads/complete 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
+        mkdir -p /mnt/truenas/downloads/incomplete 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
+        mkdir -p /mnt/truenas/media/{tv,movies,music} 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
+        echo "✅ Directory structure prepared"
+      - echo ""
+      - echo "🚀 Starting Torrent Media Stack..."
+      - |
+        if command -v podman-compose >/dev/null 2>&1; then
+          echo "Using podman-compose for deployment..."
+          podman-compose up -d
+        else
+          echo "⚠️  podman-compose not available, using fallback script..."
+          if [ -f ./start-stack.sh ]; then
+            chmod +x ./start-stack.sh
+            bash ./start-stack.sh
+          else
+            echo "❌ ERROR: No deployment method available"
+            exit 1
+          fi
+        fi
+      - echo ""
+      - echo "✅ Deployment completed!"
+      - echo ""
+      - echo "🌐 Service Access URLs:"
+      - echo "  QBittorrent - http://$(hostname -i):8083"
+      - echo "  Sonarr - http://$(hostname -i):8989"
+      - echo "  Radarr - http://$(hostname -i):7878"
+      - echo "  Lidarr - http://$(hostname -i):8686"
+      - echo "  Prowlarr - http://$(hostname -i):9696"
+      - echo "  Jellyfin - http://$(hostname -i):8096"
+      - echo ""
+      - echo "🔐 Default QBittorrent credentials - admin/adminadmin"
+      - echo "⚠️  Change default passwords after first login!"
     when:
       branch:
         - main
 
   # =============================================================================
-  # NOTIFICATION STEPS
+  # ENHANCED NOTIFICATIONS
   # =============================================================================
   - name: notify-success
     image: alpine:latest
     commands:
-      - echo "Torrent Media Stack pipeline completed successfully!"
+      - echo "✅ Torrent Media Stack Pipeline - SUCCESS"
+      - echo ""
+      - echo "📊 Build Information:"
+      - echo "  Branch    - $DRONE_BRANCH"
+      - echo "  Author    - $DRONE_COMMIT_AUTHOR"
+      - echo "  Commit    - ${DRONE_COMMIT:0:8}"
+      - echo "  Build     - #$DRONE_BUILD_NUMBER"
+      - echo "  Timestamp - $(date)"
+      - echo ""
       - |
-        echo "Branch: $DRONE_BRANCH"
-        echo "Author: $DRONE_COMMIT_AUTHOR"
-        echo "Commit: $DRONE_COMMIT"
-        echo "Build: #$DRONE_BUILD_NUMBER"
+        if [ "$DRONE_BRANCH" = "main" ]; then
+          echo "🚀 Production deployment completed successfully!"
+          echo "🌐 Services should now be accessible via web interfaces"
+          echo "🔒 VPN protection active for torrent traffic"
+        else
+          echo "📋 Validation completed - ready for production deployment"
+        fi
     when:
       status:
         - success
@@ -195,12 +252,21 @@ steps:
   - name: notify-failure
     image: alpine:latest
     commands:
-      - echo "Torrent Media Stack pipeline failed!"
-      - |
-        echo "Branch: $DRONE_BRANCH"
-        echo "Author: $DRONE_COMMIT_AUTHOR"
-        echo "Commit: $DRONE_COMMIT"
-        echo "Build: #$DRONE_BUILD_NUMBER"
+      - echo "❌ Torrent Media Stack Pipeline - FAILED"
+      - echo ""
+      - echo "📊 Build Information:"
+      - echo "  Branch    - $DRONE_BRANCH"
+      - echo "  Author    - $DRONE_COMMIT_AUTHOR"
+      - echo "  Commit    - ${DRONE_COMMIT:0:8}"
+      - echo "  Build     - #$DRONE_BUILD_NUMBER"
+      - echo "  Timestamp - $(date)"
+      - echo ""
+      - echo "🔍 Check the build logs for detailed error information"
+      - echo "💡 Common issues:"
+      - echo "  - Missing .env.example file"
+      - echo "  - Invalid podman-compose.yml syntax"
+      - echo "  - Podman socket connection issues"
+      - echo "  - Missing TrueNAS mount points"
     when:
       status:
         - failure

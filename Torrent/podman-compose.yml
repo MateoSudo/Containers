@@ -12,7 +12,7 @@ services:
       - LOC=auto  # or specific location like 'us_california'
       - USER=${PIA_USER}
       - PASS=${PIA_PASS}
-      - LOCAL_NETWORK=192.168.0.0/16,172.16.0.0/12,10.0.0.0/8
+      - LOCAL_NETWORK=192.168.0.0/16,172.16.0.0/12,10.0.0.0/8,172.20.0.0/16
       - PORT_FORWARDING=1
       - PORT_PERSIST=1
     sysctls:
