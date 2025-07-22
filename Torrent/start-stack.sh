@@ -37,7 +37,7 @@ fi
 echo "✅ Torrent Media Stack deployed successfully!"
 echo ""
 echo "🌐 Services available at:"
-echo "   - QBittorrent: http://localhost:8080"
+echo "   - QBittorrent: http://localhost:8083"
 echo "   - Sonarr: http://localhost:8989"
 echo "   - Radarr: http://localhost:7878"
 echo "   - Lidarr: http://localhost:8686"
