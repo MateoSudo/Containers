@@ -140,9 +140,8 @@ services:
 # NETWORKING CONFIGURATION
 # =============================================================================
 networks:
-  drone-net:
-    external: true
-    name: drone-net
+  drone-net: 
+ 
 
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
