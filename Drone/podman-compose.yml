@@ -28,7 +28,7 @@ services:
     # Internal network for secure communication with runner
     networks:
       drone-net:
-        ipv4_address: 10.89.1.10
+        ipv4_address: 172.20.0.10
     
     # Environment configuration using .env file variables
     environment:
@@ -96,12 +96,12 @@ services:
     # Internal network connection to communicate with Drone server
     networks:
       drone-net:
-        ipv4_address: 10.89.1.11
+        ipv4_address: 172.20.0.11
     
     # Runner configuration using .env file variables
     environment:
       # Connection to Drone server using static IP and port
-      - DRONE_RPC_HOST=10.89.1.10:8082
+      - DRONE_RPC_HOST=172.20.0.10:8082
       - DRONE_RPC_PROTO=http
       
       # Shared secret for secure server-runner authentication
@@ -143,8 +143,8 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 10.89.1.0/24
-          gateway: 10.89.1.1
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
     
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
