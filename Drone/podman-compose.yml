@@ -98,7 +98,7 @@ services:
     
     # Internal network connection to communicate with Drone server
     networks:
-      dronenet:
+      drone-net:
         ipv4_address: 10.89.1.11
     
     # Runner configuration using .env file variables
@@ -139,15 +139,15 @@ services:
 # =============================================================================
 # NETWORKING CONFIGURATION
 # =============================================================================
-networks:
-  dronenet:
-    # Bridge network with fixed subnet like the bash script
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.89.1.0/24
-          gateway: 10.89.1.1
+# networks:
+#   drone-net:
+#     # Bridge network with fixed subnet like the bash script
+#     driver: bridge
+#     ipam:
+#       driver: default
+#       config:
+#         - subnet: 10.89.1.0/24
+#           gateway: 10.89.1.1
 
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
