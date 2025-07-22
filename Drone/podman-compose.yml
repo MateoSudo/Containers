@@ -110,9 +110,6 @@ services:
       # Network configuration for pipeline containers
       - DRONE_RUNNER_NETWORKS=${DRONE_RUNNER_NETWORKS}  # drone-net
       
-      # Environment variables passed to pipeline containers
-      - DRONE_RUNNER_ENVIRON=${DRONE_RUNNER_ENVIRON}
-      
       # Enhanced debugging for troubleshooting in Proxmox environment
       - DRONE_DEBUG=true
       - DRONE_TRACE=true
