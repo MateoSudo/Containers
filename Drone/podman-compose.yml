@@ -16,15 +16,10 @@ services:
     image: drone/drone:2
     container_name: drone_server
     
-    # Custom DNS configuration to use localhost for container name resolution
-    dns:
-      - 127.0.0.11  # Docker's embedded DNS server
-      - 8.8.8.8     # Fallback to Google DNS
-    
     # Port mapping: Internal 80 → Host 8080 for Cosmos OS proxy
     # Cosmos OS should proxy drone.mrintellisense.com → http://localhost:8080
     ports:
-      - "8080:80"  # Changed from 8082 to match Cosmos OS proxy expectations
+      - "8082:8082"
     
     # Persistent data storage for SQLite database and configuration
     volumes:
@@ -32,12 +27,16 @@ services:
     
     # Internal network for secure communication with runner
     networks:
-      - drone-net
+      drone-net:
+        ipv4_address: 10.89.1.10
     
     # Environment configuration using .env file variables
     environment:
       # RPC Secret: Secure token for server-runner communication (from .env)
       - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}
+      
+      # Cookie Secret: Secure token for encrypting cookies (from .env)
+      - DRONE_COOKIE_SECRET=${DRONE_COOKIE_SECRET}
       
       # Server host: Must match Cloudflare DNS subdomain (drone.mrintellisense.com)
       - DRONE_SERVER_HOST=${DRONE_SERVER_HOST}
@@ -66,7 +65,7 @@ services:
     
     # Health check to ensure service is responding
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/healthz"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -79,18 +78,12 @@ services:
     image: drone/drone-runner-docker:1
     container_name: drone_runner
     
-    # Custom DNS configuration to resolve drone-server internally
-    dns:
-      - 127.0.0.11  # Docker's embedded DNS server
-      - 8.8.8.8     # Fallback to Google DNS
-    
     # Wait for Drone server to be healthy before starting
     depends_on:
       drone-server:
         condition: service_healthy
     
     # No external ports needed - runner communicates internally with server
-    # Port 3000 removed as it's not needed for internal communication
     
     # Critical volume mounts for container deployment in CI/CD pipelines
     volumes:
@@ -102,13 +95,14 @@ services:
     
     # Internal network connection to communicate with Drone server
     networks:
-      - drone-net
+      drone-net:
+        ipv4_address: 10.89.1.11
     
     # Runner configuration using .env file variables
     environment:
-      # Connection to Drone server using container name (internal DNS)
-      - DRONE_RPC_HOST=${DRONE_RPC_HOST}  # drone_server (container name)
-      - DRONE_RPC_PROTO=${DRONE_RPC_PROTO}  # http (internal communication)
+      # Connection to Drone server using static IP and port
+      - DRONE_RPC_HOST=10.89.1.10:8082
+      - DRONE_RPC_PROTO=http
       
       # Shared secret for secure server-runner authentication
       - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}  # Must match server secret
@@ -147,13 +141,10 @@ networks:
     # Bridge network for internal communication between Drone components
     # Use localhost DNS to resolve container names properly
     driver: bridge
-    driver_opts:
-      com.docker.network.bridge.name: drone-net
     ipam:
-      driver: default
       config:
-        - subnet: 172.30.0.0/16
-          gateway: 172.30.0.1
+        - subnet: 10.89.1.0/24
+          gateway: 10.89.1.1
     
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
