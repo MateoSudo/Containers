@@ -24,10 +24,6 @@ services:
     # Persistent data storage for SQLite database and configuration
     volumes:
       - ./drone_server_data:/data  # Local directory for data persistence
-    
-    # Internal network for secure communication with runner
-    networks:
-      - drone-net
      
     
     # Environment configuration using .env file variables
@@ -96,7 +92,7 @@ services:
       
       # Alternative if symlink exists: - /var/run/docker.sock:/var/run/docker.sock:rw
     
-    # Internal network connection to communicate with Drone server via localhost
+    # Use host networking to access server on localhost:8082
     network_mode: host
       
     
@@ -134,14 +130,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-# =============================================================================
-# NETWORKING CONFIGURATION
-# =============================================================================
-networks:
-  drone-net:
-    driver: bridge
- 
 
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
