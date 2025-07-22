@@ -222,7 +222,7 @@ steps:
         - main
 
   # =============================================================================
-  # ENHANCED NOTIFICATIONS
+  # ENHANCED NOTIFICATIONS1
   # =============================================================================
   - name: notify-success
     image: alpine:latest
