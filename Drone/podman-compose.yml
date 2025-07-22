@@ -27,7 +27,7 @@ services:
     
     # Internal network for secure communication with runner
     networks:
-      dronenet:
+      drone-net:
         ipv4_address: 10.89.1.10
     
     # Environment configuration using .env file variables
