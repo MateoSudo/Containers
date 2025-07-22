@@ -16,10 +16,10 @@ services:
     image: drone/drone:2
     container_name: drone_server
     
-    # Port mapping: Internal 80 → Host 8080 for Cosmos OS proxy
-    # Fixed port mapping - Drone runs on port 80 internally by default
+    # Port mapping: Internal 8082 → Host 8082 (matching bash script)
+    # Drone configured to run on port 8082 internally
     ports:
-      - "8080:80"
+      - "8082:8082"
     
     # Persistent data storage for SQLite database and configuration
     volumes:
@@ -27,7 +27,8 @@ services:
     
     # Internal network for secure communication with runner
     networks:
-      - dronenet
+      dronenet:
+        ipv4_address: 10.89.1.10
     
     # Environment configuration using .env file variables
     environment:
@@ -42,6 +43,9 @@ services:
       
       # Protocol: HTTP since Cosmos OS handles HTTPS termination with Let's Encrypt
       - DRONE_SERVER_PROTO=${DRONE_SERVER_PROTO}
+      
+      # Server port: Configure Drone to run on port 8082 internally
+      - DRONE_SERVER_PORT=:8082
       
       # GitHub OAuth integration for repository access control
       - DRONE_GITHUB_CLIENT_ID=${DRONE_GITHUB_CLIENT_ID}
@@ -94,13 +98,14 @@ services:
     
     # Internal network connection to communicate with Drone server
     networks:
-      - dronenet
+      dronenet:
+        ipv4_address: 10.89.1.11
     
     # Runner configuration using .env file variables
     environment:
-      # Connection to Drone server using service name (better for podman-compose)
-      - DRONE_RPC_HOST=drone-server:80
-      - DRONE_RPC_PROTO=http
+      # Connection to Drone server using localhost (since both containers are on same host)
+      - DRONE_RPC_HOST=${DRONE_RPC_HOST}
+      - DRONE_RPC_PROTO=${DRONE_RPC_PROTO}
       
       # Shared secret for secure server-runner authentication
       - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}  # Must match server secret
@@ -136,9 +141,13 @@ services:
 # =============================================================================
 networks:
   dronenet:
-    # Bridge network for internal communication between Drone components
-    # Simplified for podman-compose compatibility
+    # Bridge network with fixed subnet like the bash script
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.89.1.0/24
+          gateway: 10.89.1.1
 
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
