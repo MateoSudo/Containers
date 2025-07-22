@@ -91,9 +91,6 @@ services:
       - /run/podman/podman.sock:/var/run/docker.sock:rw
       
       # Alternative if symlink exists: - /var/run/docker.sock:/var/run/docker.sock:rw
-    
-    # Use host networking to access server on localhost:8082
-    network_mode: host
       
     
     # Runner configuration using .env file variables
