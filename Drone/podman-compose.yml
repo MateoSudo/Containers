@@ -141,8 +141,13 @@ services:
 # =============================================================================
 networks:
   drone-net:
-    # Use external network created by: podman network create --subnet 10.89.1.0/24 drone-net
-    external: true
+    # Bridge network with fixed subnet matching existing network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.89.1.0/24
+          gateway: 10.89.1.1
 
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
