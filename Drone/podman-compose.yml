@@ -28,9 +28,8 @@ services:
     # Internal network for secure communication with runner
     networks:
       drone-net:
-      driver: bridge
-      driver_opts:
-        com.docker.network.bridge.host_binding_ipv4_address: "10.89.1.10"
+        driver: bridge
+     
     
     # Environment configuration using .env file variables
     environment:
@@ -101,9 +100,8 @@ services:
     # Internal network connection to communicate with Drone server
     networks:
       drone-net:
-      driver: bridge
-      driver_opts:
-        com.docker.network.bridge.host_binding_ipv4_address: "10.89.1.11"
+        driver: bridge
+      
     
     # Runner configuration using .env file variables
     environment:
@@ -145,9 +143,7 @@ services:
 # =============================================================================
 networks:
   drone-net:
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.host_binding_ipv4_address: "10.89.1.1"
+      driver: bridge
  
 
 # =============================================================================
