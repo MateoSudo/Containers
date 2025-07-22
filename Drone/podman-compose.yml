@@ -27,8 +27,7 @@ services:
     
     # Internal network for secure communication with runner
     networks:
-      drone-net:
-        driver: bridge
+      - drone-net
      
     
     # Environment configuration using .env file variables
@@ -97,10 +96,8 @@ services:
       
       # Alternative if symlink exists: - /var/run/docker.sock:/var/run/docker.sock:rw
     
-    # Internal network connection to communicate with Drone server
-    networks:
-      drone-net:
-        driver: bridge
+    # Internal network connection to communicate with Drone server via localhost
+    network_mode: host
       
     
     # Runner configuration using .env file variables
@@ -143,7 +140,7 @@ services:
 # =============================================================================
 networks:
   drone-net:
-      driver: bridge
+    driver: bridge
  
 
 # =============================================================================
