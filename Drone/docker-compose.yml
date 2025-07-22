@@ -1,5 +1,3 @@
-version: '3.8'
-
 # =============================================================================
 # Drone CI/CD Stack for Docker with Cosmos Cloud Proxy Integration
 # =============================================================================
@@ -15,15 +13,16 @@ services:
   drone-server:
     image: drone/drone:2
     container_name: drone_server
+    hostname: drone-server
     
     # Port exposure: Only expose to Docker network for Cosmos Cloud discovery
-    # Cosmos Cloud will route drone.mrintellisense.com → http://drone-server:8082
+    # Cosmos Cloud will route drone.mrintellisense.com → http://drone-server:80
     ports:
-      - "8082"  # Expose port to Docker network only
+      - "80"  # Expose port to Docker network only (Cosmos template uses port 80)
     
     # Persistent data storage for SQLite database and configuration
     volumes:
-      - ./drone_server_data:/data  # Local directory for data persistence
+      - drone-server-data:/data  # Named volume for data persistence
      
     # Custom Docker network for service discovery
     networks:
