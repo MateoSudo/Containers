@@ -27,7 +27,9 @@ services:
     
     # Internal network for secure communication with runner
     networks:
-      - drone-net
+      drone-net:
+        # Assign static IP to ensure reliable connectivity
+        ipv4_address: 172.20.0.10
     
     # Environment configuration using .env file variables
     environment:
@@ -92,7 +94,9 @@ services:
     
     # Internal network connection to communicate with Drone server
     networks:
-      - drone-net
+      drone-net:
+        # Assign static IP for reliable server connectivity
+        ipv4_address: 172.20.0.11
     
     # Runner configuration using .env file variables
     environment:
@@ -137,6 +141,10 @@ networks:
     # Bridge network for internal communication between Drone components
     # Isolated from host network except for explicit port mappings
     driver: bridge
+    # Add explicit subnet to ensure proper DNS resolution
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
     
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
