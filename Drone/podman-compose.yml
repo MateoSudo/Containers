@@ -17,9 +17,9 @@ services:
     container_name: drone_server
     
     # Port mapping: Internal 80 → Host 8080 for Cosmos OS proxy
-    # Cosmos OS should proxy drone.mrintellisense.com → http://localhost:8080
+    # Fixed port mapping - Drone runs on port 80 internally by default
     ports:
-      - "8082:8082"
+      - "8080:80"
     
     # Persistent data storage for SQLite database and configuration
     volumes:
@@ -27,8 +27,7 @@ services:
     
     # Internal network for secure communication with runner
     networks:
-      drone-net:
-        ipv4_address: 172.20.0.10
+      - dronenet
     
     # Environment configuration using .env file variables
     environment:
@@ -65,7 +64,7 @@ services:
     
     # Health check to ensure service is responding
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/healthz"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -95,13 +94,12 @@ services:
     
     # Internal network connection to communicate with Drone server
     networks:
-      drone-net:
-        ipv4_address: 172.20.0.11
+      - dronenet
     
     # Runner configuration using .env file variables
     environment:
-      # Connection to Drone server using static IP and port
-      - DRONE_RPC_HOST=172.20.0.10:8082
+      # Connection to Drone server using service name (better for podman-compose)
+      - DRONE_RPC_HOST=drone-server:80
       - DRONE_RPC_PROTO=http
       
       # Shared secret for secure server-runner authentication
@@ -112,7 +110,7 @@ services:
       - DRONE_RUNNER_NAME=${DRONE_RUNNER_NAME}  # podman-runner
       
       # Network configuration for pipeline containers
-      - DRONE_RUNNER_NETWORKS=${DRONE_RUNNER_NETWORKS}  # drone-net
+      - DRONE_RUNNER_NETWORKS=${DRONE_RUNNER_NETWORKS}  # dronenet
       
       # Enhanced debugging for troubleshooting in Proxmox environment
       - DRONE_DEBUG=true
@@ -137,15 +135,11 @@ services:
 # NETWORKING CONFIGURATION
 # =============================================================================
 networks:
-  drone-net:
+  dronenet:
     # Bridge network for internal communication between Drone components
+    # Simplified for podman-compose compatibility
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.0.0/16
-          gateway: 172.20.0.1
-    
+
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
 # =============================================================================
