@@ -139,13 +139,9 @@ services:
 networks:
   drone-net:
     # Bridge network for internal communication between Drone components
-    # Use localhost DNS to resolve container names properly
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.89.1.0/24
-          gateway: 10.89.1.1
+    # Use existing network or create with external flag
+    external: true
+    name: drone_drone-net
     
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
