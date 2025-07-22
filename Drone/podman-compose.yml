@@ -16,6 +16,11 @@ services:
     image: drone/drone:2
     container_name: drone_server
     
+    # Custom DNS configuration to use localhost for container name resolution
+    dns:
+      - 127.0.0.11  # Docker's embedded DNS server
+      - 8.8.8.8     # Fallback to Google DNS
+    
     # Port mapping: Internal 80 → Host 8080 for Cosmos OS proxy
     # Cosmos OS should proxy drone.mrintellisense.com → http://localhost:8080
     ports:
@@ -73,6 +78,11 @@ services:
   drone-runner:
     image: drone/drone-runner-docker:1
     container_name: drone_runner
+    
+    # Custom DNS configuration to resolve drone-server internally
+    dns:
+      - 127.0.0.11  # Docker's embedded DNS server
+      - 8.8.8.8     # Fallback to Google DNS
     
     # Wait for Drone server to be healthy before starting
     depends_on:
@@ -135,8 +145,15 @@ services:
 networks:
   drone-net:
     # Bridge network for internal communication between Drone components
-    # Isolated from host network except for explicit port mappings
+    # Use localhost DNS to resolve container names properly
     driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: drone-net
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1
     
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
