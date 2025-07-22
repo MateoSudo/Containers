@@ -141,13 +141,8 @@ services:
 # =============================================================================
 networks:
   drone-net:
-    # Bridge network with fixed subnet matching existing network
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.89.1.0/24
-          gateway: 10.89.1.1
+    external: true
+    name: drone-net
 
 # =============================================================================
 # COSMOS OS INTEGRATION NOTES
