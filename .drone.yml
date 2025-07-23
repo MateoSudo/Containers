@@ -18,7 +18,7 @@ volumes:
 
 steps:
   # =============================================================================
-  # OPTIMIZED VALIDATION (Single Container)
+  # OPTIMIZED VALIDATION (Single Container)1
   # =============================================================================
   - name: validate-and-prepare
     image: alpine:latest
