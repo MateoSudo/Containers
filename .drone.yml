@@ -2,7 +2,6 @@ kind: pipeline
 type: docker
 name: torrent-media-stack
 
-# Only trigger when files in Torrent/ folder change
 trigger:
   paths:
     include:
@@ -17,9 +16,6 @@ volumes:
       path: /var/run/docker.sock
 
 steps:
-  # =============================================================================
-  # YAML VALIDATION
-  # =============================================================================
   - name: validate-yaml
     image: alpine:latest
     commands:
@@ -35,21 +31,8 @@ steps:
           yq eval '.kind' .drone.yml 2>&1 || true
           exit 1
         fi
-      - echo ""
-      - echo "2. Checking for formatting issues:"
-      - |
-        if grep -P '\t' .drone.yml; then
-          echo "  [ERROR] Tab characters found - use spaces only"
-          exit 1
-        fi
-        if grep ' $' .drone.yml; then
-          echo "  [WARNING] Trailing spaces found"
-        fi
       - echo "[SUCCESS] YAML validation completed"
 
-  # =============================================================================
-  # DOCKER COMPOSE VALIDATION
-  # =============================================================================
   - name: validate-compose
     image: docker:24-dind
     volumes:
@@ -76,22 +59,8 @@ steps:
           docker compose config 2>&1 || true
           exit 1
         fi
-      - echo ""
-      - echo "3. Checking required services:"
-      - |
-        required_services="pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin"
-        for service in $required_services; do
-          if docker compose config | grep -q "^  $service:"; then
-            echo "    [SUCCESS] Service '$service' configured"
-          else
-            echo "    [WARNING] Service '$service' not found"
-          fi
-        done
       - echo "[SUCCESS] Docker Compose validation completed"
 
-  # =============================================================================
-  # SECURITY SCANNING
-  # =============================================================================
   - name: security-scan
     image: aquasec/trivy:latest
     commands:
@@ -100,21 +69,12 @@ steps:
       - echo ""
       - echo "1. Docker Compose security check:"
       - |
-        # Check for privileged containers
         if grep -q "privileged.*true" docker-compose.yml; then
           echo "  [WARNING] Privileged containers detected"
         else
           echo "  [SUCCESS] No privileged containers"
         fi
         
-        # Check for host network mode
-        if grep -q "network_mode.*host" docker-compose.yml; then
-          echo "  [WARNING] Host network mode detected"
-        else
-          echo "  [SUCCESS] Isolated networking used"
-        fi
-        
-        # Check user configuration
         if grep -q "PUID.*1000" docker-compose.yml; then
           echo "  [SUCCESS] Non-root user configuration found"
         else
@@ -131,9 +91,6 @@ steps:
         done
       - echo "[SUCCESS] Security scanning completed"
 
-  # =============================================================================
-  # DEPLOYMENT
-  # =============================================================================
   - name: deploy
     image: docker:24-dind
     volumes:
@@ -159,7 +116,6 @@ steps:
           if [ -f .env.example ]; then
             cp .env.example .env
             echo "  [SUCCESS] Created .env from template"
-            echo "  [WARNING] Ensure PIA credentials are configured"
           else
             echo "  [ERROR] No .env.example template found"
             exit 1
@@ -196,22 +152,10 @@ steps:
       - docker compose ps
       - echo ""
       - echo "[SUCCESS] Deployment completed successfully!"
-      - echo ""
-      - echo "Services will be available at:"
-      - echo "  - QBittorrent: http://localhost:8083 (via VPN)"
-      - echo "  - Other services: Via Cosmos Cloud proxy"
-      - echo ""
-      - echo "[WARNING] Remember to:"
-      - echo "  - Configure PIA credentials in .env"
-      - echo "  - Change default passwords"
-      - echo "  - Set up Cosmos Cloud routes"
     when:
       branch:
         - main
 
-  # =============================================================================
-  # NOTIFICATIONS
-  # =============================================================================
   - name: notify-success
     image: alpine:latest
     commands:
@@ -226,8 +170,6 @@ steps:
       - |
         if [ "$DRONE_BRANCH" = "main" ]; then
           echo "[SUCCESS] Production deployment completed!"
-          echo "[INFO] VPN protection active for torrents"
-          echo "[INFO] Configure Cosmos Cloud for web access"
         else
           echo "[SUCCESS] Validation passed - ready for production"
         fi
@@ -251,8 +193,6 @@ steps:
       - echo "  - Invalid docker-compose.yml syntax"
       - echo "  - Docker daemon connection"
       - echo "  - Missing mount points"
-      - echo ""
-      - echo "Check build logs for detailed error information"
     when:
       status:
         - failure
