@@ -12,9 +12,9 @@ trigger:
     - pull_request
 
 volumes:
-  - name: podman-socket
+  - name: docker-socket
     host:
-      path: /run/podman/podman.sock
+      path: /var/run/docker.sock
 
 steps:
   # =============================================================================
@@ -26,16 +26,16 @@ steps:
       - cd Torrent
       - echo "[INFO] Running comprehensive validation and preparation..."
       - echo ""
-      - echo "1. Validating podman-compose.yml structure..."
+      - echo "1. Validating docker-compose.yml structure..."
       - |
-        if [ ! -f podman-compose.yml ]; then
-          echo "[ERROR] podman-compose.yml not found"
+        if [ ! -f docker-compose.yml ]; then
+          echo "[ERROR] docker-compose.yml not found"
           exit 1
         fi
         echo "[SUCCESS] Compose file exists"
         
         # Quick syntax validation
-        if grep -q "version:" podman-compose.yml && grep -q "services:" podman-compose.yml; then
+        if grep -q "services:" docker-compose.yml; then
           echo "[SUCCESS] Basic YAML structure valid"
         else
           echo "[ERROR] Invalid compose file structure"
@@ -59,7 +59,7 @@ steps:
       - echo ""
       - echo "3. Security scan..."
       - |
-        if grep -i "password\|secret\|key" podman-compose.yml | grep -v "from_secret\|_FILE\|\$${.*}" | grep -q .; then
+        if grep -i "password\|secret\|key" docker-compose.yml | grep -v "from_secret\|_FILE\|\$${.*}" | grep -q .; then
           echo "[WARNING] Potential hardcoded secrets detected"
           echo "Consider using environment variables or secrets"
         else
@@ -69,20 +69,20 @@ steps:
       - echo "4. Port configuration validation..."
       - |
         echo "Configured ports:"
-        grep -E '^\s*-\s*"[0-9]+:[0-9]+"' podman-compose.yml | sed 's/.*"\([0-9]*\):\([0-9]*\)".*/  \1 -> \2/' || echo "  No direct port mappings found"
+        grep -E '^\s*-\s*"[0-9]+:[0-9]+"' docker-compose.yml | sed 's/.*"\([0-9]*\):\([0-9]*\)".*/  \1 -> \2/' || echo "  No direct port mappings found"
         echo "[SUCCESS] Port validation complete"
       - echo ""
       - echo "5. Storage and network validation..."
       - |
         echo "Storage requirements:"
-        if grep -q "/mnt/truenas" podman-compose.yml; then
+        if grep -q "/mnt/truenas" docker-compose.yml; then
           echo "  [SUCCESS] TrueNAS storage mapping found"
         else
           echo "  [WARNING] No TrueNAS storage mapping detected"
         fi
         
         echo "Network configuration:"
-        if grep -q "networks:" podman-compose.yml; then
+        if grep -q "networks:" docker-compose.yml; then
           echo "  [SUCCESS] Custom networks configured"
         else
           echo "  [WARNING] Using default network"
@@ -92,7 +92,7 @@ steps:
       - echo "6. Service availability check..."
       - |
         echo "Configured services:"
-        grep -E "^\s*[a-zA-Z][a-zA-Z0-9_-]*:" podman-compose.yml | sed 's/://g' | sed 's/^/  - /' || echo "  No services found"
+        grep -E "^\s*[a-zA-Z][a-zA-Z0-9_-]*:" docker-compose.yml | sed 's/://g' | sed 's/^/  - /' || echo "  No services found"
         echo "[SUCCESS] Service configuration validated"
       - echo ""
       - echo "[SUCCESS] All validations passed successfully!"
@@ -131,7 +131,7 @@ steps:
       - echo "  Container volumes       -> Service configurations"
       - echo ""
       - echo "[WARNING] Staging - Manual deployment required"
-      - echo "   Command - podman-compose -f podman-compose.yml up -d"
+      - echo "   Command - docker compose up -d"
     when:
       branch:
         - develop
@@ -141,13 +141,13 @@ steps:
   # PRODUCTION DEPLOYMENT (Automated)
   # =============================================================================
   - name: deploy-production
-    image: alpine:latest
+    image: docker:24-dind
     volumes:
-      - name: podman-socket
-        path: /run/podman/podman.sock
+      - name: docker-socket
+        path: /var/run/docker.sock
     commands:
       - echo "[INFO] Starting Production Deployment..."
-      - apk add --no-cache podman bash python3 py3-pip podman-compose
+      - apk add --no-cache bash python3 py3-pip docker-compose
       - cd Torrent
       - echo ""
       - echo "[INFO] Available files:"
@@ -173,10 +173,10 @@ steps:
       - |
         # Stop existing containers gracefully
         for container in pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin; do
-          if podman ps -a --format "{{.Names}}" | grep -q "^$${container}$"; then
+          if docker ps -a --format "{{.Names}}" | grep -q "^$${container}$"; then
             echo "  Stopping $$container..."
-            podman stop $$container 2>/dev/null || true
-            podman rm $$container 2>/dev/null || true
+            docker stop $$container 2>/dev/null || true
+            docker rm $$container 2>/dev/null || true
           fi
         done
         echo "[SUCCESS] Cleanup complete"
@@ -191,11 +191,11 @@ steps:
       - echo ""
       - echo "[INFO] Starting Torrent Media Stack..."
       - |
-        if command -v podman-compose >/dev/null 2>&1; then
-          echo "Using podman-compose for deployment..."
-          podman-compose up -d
+        if command -v docker >/dev/null 2>&1; then
+          echo "Using docker compose for deployment..."
+          docker compose up -d
         else
-          echo "[WARNING] podman-compose not available, using fallback script..."
+          echo "[WARNING] docker compose not available, using fallback script..."
           if [ -f ./start-stack.sh ]; then
             chmod +x ./start-stack.sh
             bash ./start-stack.sh
