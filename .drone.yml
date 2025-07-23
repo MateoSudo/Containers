@@ -486,7 +486,7 @@ steps:
       - echo "  Branch    -" "$DRONE_BRANCH"
       - echo "  Author    -" "$DRONE_COMMIT_AUTHOR"
       - echo "  Commit    -" "$DRONE_COMMIT"
-      - echo "  Build     - #$DRONE_BUILD_NUMBER"
+      - echo "  Build     - Build" "$DRONE_BUILD_NUMBER"
       - echo "  Timestamp - $(date)"
       - echo ""
       - |
@@ -510,14 +510,14 @@ steps:
       - echo "  Branch    -" "$DRONE_BRANCH"
       - echo "  Author    -" "$DRONE_COMMIT_AUTHOR"
       - echo "  Commit    -" "$DRONE_COMMIT"
-      - echo "  Build     - #$DRONE_BUILD_NUMBER"
+      - echo "  Build     - Build" "$DRONE_BUILD_NUMBER"
       - echo "  Timestamp - $(date)"
       - echo ""
       - echo "[INFO] Check the build logs for detailed error information"
       - echo "[INFO] Common issues:"
       - echo "  - Missing .env.example file"
-      - echo "  - Invalid podman-compose.yml syntax"
-      - echo "  - Podman socket connection issues"
+      - echo "  - Invalid docker-compose.yml syntax"
+      - echo "  - Docker socket connection issues"
       - echo "  - Missing TrueNAS mount points"
     when:
       status:
