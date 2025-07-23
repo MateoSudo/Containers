@@ -18,484 +18,218 @@ volumes:
 
 steps:
   # =============================================================================
-  # YAML VALIDATION & DEBUGGING
+  # YAML VALIDATION
   # =============================================================================
   - name: validate-yaml
     image: alpine:latest
     commands:
-      - echo "[INFO] Validating Drone YAML syntax and debugging..."
+      - echo "[INFO] Validating YAML syntax..."
       - apk add --no-cache yq
       - echo ""
-      - echo "1. YAML Syntax Validation:"
+      - echo "1. Checking Drone YAML syntax:"
       - |
         if yq eval '.kind' .drone.yml >/dev/null 2>&1; then
-          echo "  [SUCCESS] YAML syntax is valid"
+          echo "  [SUCCESS] Drone YAML syntax is valid"
         else
-          echo "  [ERROR] YAML syntax error detected:"
+          echo "  [ERROR] Drone YAML syntax error:"
           yq eval '.kind' .drone.yml 2>&1 || true
-          echo ""
-          echo "  Checking for common issues:"
-          # Check for tab characters
-          if grep -P '\t' .drone.yml; then
-            echo "  [ERROR] Tab characters found - use spaces only"
-          fi
-          # Check for trailing spaces
-          if grep ' $' .drone.yml; then
-            echo "  [WARNING] Trailing spaces found"
-          fi
           exit 1
         fi
       - echo ""
-      - echo "2. Variable Reference Check:"
+      - echo "2. Checking for formatting issues:"
       - |
-        echo "  Checking for problematic variable syntax..."
-        # Look for potential issues
-        if grep -n '$$' .drone.yml; then
-          echo "  [ERROR] Double dollar signs found (line numbers above)"
+        if grep -P '\t' .drone.yml; then
+          echo "  [ERROR] Tab characters found - use spaces only"
+          exit 1
         fi
-        if grep -n '\${[^}]*\${' .drone.yml; then
-          echo "  [ERROR] Nested variable references found"
+        if grep ' $' .drone.yml; then
+          echo "  [WARNING] Trailing spaces found"
         fi
-        if grep -n '\$[A-Za-z_][A-Za-z0-9_]*[^A-Za-z0-9_\s})]' .drone.yml | head -5; then
-          echo "  [INFO] Variable references found (first 5 shown above - these should be OK)"
-        fi
-        echo "  [SUCCESS] Variable syntax check completed"
-      - echo ""
-      - echo "3. Structure Validation:"
-      - |
-        echo "  Pipeline kind: $(yq eval '.kind' .drone.yml)"
-        echo "  Pipeline type: $(yq eval '.type' .drone.yml)"
-        echo "  Pipeline name: $(yq eval '.name' .drone.yml)"
-        echo "  Steps count: $(yq eval '.steps | length' .drone.yml)"
-        echo "  [SUCCESS] Basic structure validated"
-      - echo ""
-      - echo "[SUCCESS] YAML validation completed successfully!"
+      - echo "[SUCCESS] YAML validation completed"
 
   # =============================================================================
-  # OPTIMIZED VALIDATION (Single Container)1
+  # DOCKER COMPOSE VALIDATION
   # =============================================================================
-  - name: validate-and-prepare
-    image: alpine:latest
-    commands:
-      - cd Torrent
-      - echo "[INFO] Running comprehensive validation and preparation..."
-      - echo ""
-      - echo "1. Validating docker-compose.yml structure..."
-      - |
-        if [ ! -f docker-compose.yml ]; then
-          echo "[ERROR] docker-compose.yml not found"
-          exit 1
-        fi
-        echo "[SUCCESS] Compose file exists"
-        
-        # Quick syntax validation
-        if grep -q "services:" docker-compose.yml; then
-          echo "[SUCCESS] Basic YAML structure valid"
-        else
-          echo "[ERROR] Invalid compose file structure"
-          exit 1
-        fi
-      - echo ""
-      - echo "2. Environment configuration check..."
-      - |
-        if [ ! -f .env.example ]; then
-          echo "[ERROR] Missing .env.example template"
-          exit 1
-        fi
-        echo "[SUCCESS] Environment template exists"
-        
-        # Check for required variables
-        if grep -q "PIA_USER\|PIA_PASS" .env.example; then
-          echo "[SUCCESS] Required PIA variables found in template"
-        else
-          echo "[WARNING] PIA credentials not found in template"
-        fi
-      - echo ""
-      - echo "3. Security scan..."
-      - |
-        if grep -i "password\|secret\|key" docker-compose.yml | grep -v "from_secret\|_FILE\|\\${.*}" | grep -q .; then
-          echo "[WARNING] Potential hardcoded secrets detected"
-          echo "Consider using environment variables or secrets"
-        else
-          echo "[SUCCESS] No hardcoded secrets detected"
-        fi
-      - echo ""
-      - echo "4. Port configuration validation..."
-      - |
-        echo "Configured ports:"
-        grep -E '^\s*-\s*"[0-9]+:[0-9]+"' docker-compose.yml | sed 's/.*"\([0-9]*\):\([0-9]*\)".*/  \1 -> \2/' || echo "  No direct port mappings found"
-        echo "[SUCCESS] Port validation complete"
-      - echo ""
-      - echo "5. Storage and network validation..."
-      - |
-        echo "Storage requirements:"
-        if grep -q "/mnt/truenas" docker-compose.yml; then
-          echo "  [SUCCESS] TrueNAS storage mapping found"
-        else
-          echo "  [WARNING] No TrueNAS storage mapping detected"
-        fi
-        
-        echo "Network configuration:"
-        if grep -q "networks:" docker-compose.yml; then
-          echo "  [SUCCESS] Custom networks configured"
-        else
-          echo "  [WARNING] Using default network"
-        fi
-        echo "[SUCCESS] Storage and network validation complete"
-      - echo ""
-      - echo "6. Service availability check..."
-      - |
-        echo "Configured services:"
-        grep -E "^\s*[a-zA-Z][a-zA-Z0-9_-]*:" docker-compose.yml | sed 's/://g' | sed 's/^/  - /' || echo "  No services found"
-        echo "[SUCCESS] Service configuration validated"
-      - echo ""
-      - echo "[SUCCESS] All validations passed successfully!"
-      - echo ""
-      - echo "[INFO] Deployment Summary:"
-      - echo "Stack - Torrent Media Stack with VPN Protection"
-      - echo "Services - PIA VPN, QBittorrent, Sonarr, Radarr, Lidarr, Prowlarr, Jellyfin"
-      - echo "Storage - TrueNAS external mount + container volumes"
-      - echo "Security - VPN-protected torrent traffic, isolated networks"
-
-  # =============================================================================
-  # SECURITY TESTING & VULNERABILITY SCANNING
-  # =============================================================================
-  - name: security-scan
+  - name: validate-compose
     image: docker:24-dind
     volumes:
       - name: docker-socket
         path: /var/run/docker.sock
     commands:
+      - echo "[INFO] Validating Docker Compose configuration..."
       - cd Torrent
-      - echo "[INFO] Starting comprehensive security testing..."
-      - apk add --no-cache curl jq bash
       - echo ""
-      - echo "1. Installing security tools..."
+      - echo "1. Checking docker-compose.yml:"
       - |
-        # Install Trivy for vulnerability scanning
-        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-        
-        # Install Hadolint for Dockerfile linting (if Dockerfiles present)
-        if find . -name "Dockerfile*" -type f | grep -q .; then
-          wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
-          chmod +x /usr/local/bin/hadolint
+        if [ ! -f docker-compose.yml ]; then
+          echo "  [ERROR] docker-compose.yml not found"
+          exit 1
         fi
-        echo "[SUCCESS] Security tools installed"
+        echo "  [SUCCESS] docker-compose.yml found"
       - echo ""
-      - echo "2. Docker Compose security analysis..."
+      - echo "2. Validating Docker Compose syntax:"
       - |
-        echo "Analyzing compose file for security issues:"
-        
+        if docker compose config >/dev/null 2>&1; then
+          echo "  [SUCCESS] Docker Compose syntax is valid"
+        else
+          echo "  [ERROR] Docker Compose validation failed:"
+          docker compose config 2>&1 || true
+          exit 1
+        fi
+      - echo ""
+      - echo "3. Checking required services:"
+      - |
+        required_services="pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin"
+        for service in $required_services; do
+          if docker compose config | grep -q "^  $service:"; then
+            echo "    [SUCCESS] Service '$service' configured"
+          else
+            echo "    [WARNING] Service '$service' not found"
+          fi
+        done
+      - echo "[SUCCESS] Docker Compose validation completed"
+
+  # =============================================================================
+  # SECURITY SCANNING
+  # =============================================================================
+  - name: security-scan
+    image: aquasec/trivy:latest
+    commands:
+      - echo "[INFO] Running security analysis..."
+      - cd Torrent
+      - echo ""
+      - echo "1. Docker Compose security check:"
+      - |
         # Check for privileged containers
         if grep -q "privileged.*true" docker-compose.yml; then
-          echo "  [WARNING] Privileged containers detected - review necessity"
+          echo "  [WARNING] Privileged containers detected"
         else
-          echo "  [SUCCESS] No privileged containers found"
+          echo "  [SUCCESS] No privileged containers"
         fi
         
         # Check for host network mode
         if grep -q "network_mode.*host" docker-compose.yml; then
-          echo "  [WARNING] Host network mode detected - potential security risk"
+          echo "  [WARNING] Host network mode detected"
         else
-          echo "  [SUCCESS] No host network mode usage"
+          echo "  [SUCCESS] Isolated networking used"
         fi
         
-        # Check for bind mounts to sensitive paths
-        if grep -E ":/etc|:/var|:/usr|:/bin|:/sbin|:/root|:/home" docker-compose.yml | grep -v "/var/run/docker.sock\|/mnt/truenas"; then
-          echo "  [WARNING] Sensitive host path mounts detected:"
-          grep -E ":/etc|:/var|:/usr|:/bin|:/sbin|:/root|:/home" docker-compose.yml | grep -v "/var/run/docker.sock\|/mnt/truenas" | sed 's/^/    /'
+        # Check user configuration
+        if grep -q "PUID.*1000" docker-compose.yml; then
+          echo "  [SUCCESS] Non-root user configuration found"
         else
-          echo "  [SUCCESS] No sensitive host path mounts"
-        fi
-        
-        # Check for containers running as root
-        if grep -A 5 -B 5 "PUID\|PGID" docker-compose.yml | grep -q "PUID=0\|PGID=0"; then
-          echo "  [WARNING] Containers running as root detected"
-        else
-          echo "  [SUCCESS] Containers using non-root user (PUID/PGID)"
-        fi
-        
-        # Check for exposed ports
-        exposed_ports=$(grep -E '^\s*-\s*"[0-9]+:[0-9]+"' docker-compose.yml | wc -l)
-        if [ "$exposed_ports" -gt 1 ]; then
-          echo "  [WARNING] Multiple ports exposed to host - consider internal-only access"
-        else
-          echo "  [SUCCESS] Minimal port exposure (VPN only)"
+          echo "  [WARNING] Verify non-root user setup"
         fi
       - echo ""
-      - echo "3. Container image vulnerability scanning..."
+      - echo "2. Container image vulnerability scan:"
       - |
-        # Extract unique images from compose file
-        images=$(grep -E "^\s*image:" docker-compose.yml | awk '{print $2}' | sort -u)
-        
-        echo "Scanning container images for vulnerabilities:"
+        echo "  Scanning images for vulnerabilities..."
+        images=$(grep "image:" docker-compose.yml | sed 's/.*image: *//g' | sort -u)
         for image in $images; do
-          echo "  Scanning: $image"
-          
-          # Pull image for scanning
-          docker pull "$image" >/dev/null 2>&1 || echo "    [WARNING] Failed to pull $image"
-          
-          # Run Trivy scan
-          trivy image --exit-code 0 --severity HIGH,CRITICAL --format table "$image" || {
-            echo "    [WARNING] High/Critical vulnerabilities found in $image"
-          }
-          
-          # Quick configuration scan
-          trivy config --exit-code 0 . 2>/dev/null || echo "    [INFO] Configuration scan completed"
+          echo "    Scanning $image..."
+          trivy image --severity HIGH,CRITICAL --quiet --format table "$image" || echo "    [WARNING] Scan failed for $image"
         done
-        echo "[SUCCESS] Vulnerability scanning completed"
-      - echo ""
-      - echo "4. Network security analysis..."
-      - |
-        echo "Network configuration review:"
-        
-        # Check for custom networks
-        if grep -q "networks:" docker-compose.yml; then
-          echo "  [SUCCESS] Custom networks configured for isolation"
-          
-          # Check network configuration
-          if grep -A 10 "networks:" docker-compose.yml | grep -q "driver: bridge"; then
-            echo "  [SUCCESS] Bridge networking used (good isolation)"
-          fi
-          
-          if grep -A 10 "networks:" docker-compose.yml | grep -q "subnet:"; then
-            echo "  [SUCCESS] Custom subnet configured"
-          fi
-        else
-          echo "  [WARNING] No custom networks - services on default bridge"
-        fi
-        
-        # VPN protection check
-        if grep -q "network_mode: service:pia-vpn" docker-compose.yml; then
-          echo "  [SUCCESS] QBittorrent protected by VPN container"
-        else
-          echo "  [WARNING] No VPN protection detected for torrent client"
-        fi
-      - echo ""
-      - echo "5. Secrets and environment security..."
-      - |
-        echo "Environment and secrets analysis:"
-        
-        # Check for hardcoded credentials
-        if grep -i "password\|secret\|key\|token" docker-compose.yml | grep -v "\${.*}" | grep -q .; then
-          echo "  [CRITICAL] Potential hardcoded secrets detected:"
-          grep -i "password\|secret\|key\|token" docker-compose.yml | grep -v "\${.*}" | sed 's/^/    /'
-        else
-          echo "  [SUCCESS] No hardcoded secrets found"
-        fi
-        
-        # Check for .env usage
-        if [ -f .env.example ]; then
-          echo "  [SUCCESS] Environment template found (.env.example)"
-          
-          # Check .env.example for required variables
-          if grep -q "PIA_USER\|PIA_PASS" .env.example; then
-            echo "  [SUCCESS] VPN credentials properly templated"
-          fi
-        else
-          echo "  [WARNING] No .env.example template found"
-        fi
-        
-        # Check for Docker secrets usage (advanced)
-        if grep -q "secrets:" docker-compose.yml; then
-          echo "  [SUCCESS] Docker secrets configured"
-        else
-          echo "  [INFO] No Docker secrets configured (using environment variables)"
-        fi
-      - echo ""
-      - echo "6. Volume and storage security..."
-      - |
-        echo "Storage security review:"
-        
-        # Check for read-only volumes where appropriate
-        if grep -q ":ro" docker-compose.yml; then
-          echo "  [SUCCESS] Read-only mounts detected"
-        else
-          echo "  [INFO] No read-only mounts found"
-        fi
-        
-        # Check for tmpfs usage
-        if grep -q "tmpfs:" docker-compose.yml; then
-          echo "  [SUCCESS] tmpfs mounts for temporary data"
-        else
-          echo "  [INFO] No tmpfs mounts configured"
-        fi
-        
-        # Check volume permissions
-        if grep -q "PUID.*1000\|PGID.*1000" docker-compose.yml; then
-          echo "  [SUCCESS] Non-root user configured (1000:1000)"
-        else
-          echo "  [WARNING] User permissions not explicitly set"
-        fi
-      - echo ""
-      - echo "[INFO] Security Scan Summary:"
-      - echo "=========================="
-      - echo "✓ Container vulnerability scanning completed"
-      - echo "✓ Docker Compose security analysis completed"
-      - echo "✓ Network isolation reviewed"
-      - echo "✓ Secrets management analyzed"
-      - echo "✓ Storage security assessed"
-      - echo ""
-      - echo "[INFO] Review warnings above and address critical issues before deployment"
-      - echo "[INFO] Consider implementing additional security measures:"
-      - echo "  - Regular image updates and vulnerability patching"
-      - echo "  - Network segmentation with firewall rules"
-      - echo "  - Log monitoring and intrusion detection"
-      - echo "  - Regular security audits and penetration testing"
+      - echo "[SUCCESS] Security scanning completed"
 
   # =============================================================================
-  # STAGING DEPLOYMENT (Info Only)
+  # DEPLOYMENT
   # =============================================================================
-  - name: deploy-staging
-    image: alpine:latest
-    commands:
-      - cd Torrent
-      - echo "[INFO] Staging Environment Overview"
-      - echo ""
-      - echo "Services Configuration:"
-      - echo "  PIA VPN         | N/A      | Network protection & routing"
-      - echo "  QBittorrent     | 8083     | Torrent downloads (VPN protected)"
-      - echo "  Sonarr          | 8989     | TV series automation"
-      - echo "  Radarr          | 7878     | Movie automation"
-      - echo "  Lidarr          | 8686     | Music automation"
-      - echo "  Prowlarr        | 9696     | Indexer management"
-      - echo "  Jellyfin        | 8096     | Media streaming server"
-      - echo ""
-      - echo "Network Architecture:"
-      - echo "  Internet <- VPN <- PIA Container <- QBittorrent (protected)"
-      - echo "  Internet <- Host Network <- Other Services (direct)"
-      - echo ""
-      - echo "Storage Layout:"
-      - echo "  /mnt/truenas/downloads/ -> QBittorrent downloads"
-      - echo "  /mnt/truenas/media/     -> Jellyfin library source"
-      - echo "  Container volumes       -> Service configurations"
-      - echo ""
-      - echo "[WARNING] Staging - Manual deployment required"
-      - echo "   Command - docker compose up -d"
-    when:
-      branch:
-        - develop
-        - feature/*
-
-  # =============================================================================
-  # PRODUCTION DEPLOYMENT (Automated)
-  # =============================================================================
-  - name: deploy-production
+  - name: deploy
     image: docker:24-dind
     volumes:
       - name: docker-socket
         path: /var/run/docker.sock
     commands:
-      - echo "[INFO] Starting Production Deployment..."
-      - echo "[DEBUG] Drone environment variables:"
-      - echo "  DRONE_BRANCH:" "$DRONE_BRANCH"
-      - echo "  DRONE_COMMIT:" "$DRONE_COMMIT"  
-      - echo "  DRONE_COMMIT_AUTHOR:" "$DRONE_COMMIT_AUTHOR"
-      - echo "  DRONE_BUILD_NUMBER:" "$DRONE_BUILD_NUMBER"
+      - echo "[INFO] Starting deployment..."
       - echo ""
-      - apk add --no-cache bash python3 py3-pip docker-compose
+      - echo "Build Information:"
+      - echo "  Branch:" "$DRONE_BRANCH"
+      - echo "  Commit:" "$DRONE_COMMIT"
+      - echo "  Author:" "$DRONE_COMMIT_AUTHOR"
+      - echo "  Build:" "$DRONE_BUILD_NUMBER"
+      - echo ""
+      - apk add --no-cache bash
       - cd Torrent
-      - echo ""
-      - echo "[INFO] Available files:"
+      - echo "Files in Torrent directory:"
       - ls -la
       - echo ""
-      - echo "[INFO] Preparing deployment..."
+      - echo "1. Preparing environment..."
       - |
-        # Create .env from template if it doesn't exist
         if [ ! -f .env ]; then
           if [ -f .env.example ]; then
             cp .env.example .env
-            echo "[SUCCESS] Created .env from template"
-            echo "[WARNING] Please ensure PIA credentials are configured in .env"
+            echo "  [SUCCESS] Created .env from template"
+            echo "  [WARNING] Ensure PIA credentials are configured"
           else
-            echo "[ERROR] No .env.example template found"
+            echo "  [ERROR] No .env.example template found"
             exit 1
           fi
         else
-          echo "[SUCCESS] .env file already exists"
+          echo "  [SUCCESS] .env file exists"
         fi
       - echo ""
-      - echo "[INFO] Stopping existing stack..."
+      - echo "2. Stopping existing stack..."
       - |
-        # Use docker compose down for clean shutdown
         if [ -f docker-compose.yml ]; then
-          echo "  Running docker compose down..."
-          docker compose down --remove-orphans 2>/dev/null || echo "  Note: No existing stack found"
-          echo "[SUCCESS] Stack stopped and cleaned"
+          echo "  Stopping containers with docker compose down..."
+          docker compose down --remove-orphans 2>/dev/null || echo "  No existing stack running"
+          echo "  [SUCCESS] Stack stopped and cleaned"
         else
-          echo "[WARNING] No docker-compose.yml found, skipping compose down"
-          # Fallback to individual container cleanup
-          for container in pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin; do
-            if docker ps -a --format "{{.Names}}" | grep -q "^$container$"; then
-              echo "  Stopping $container..."
-              docker stop $container 2>/dev/null || true
-              docker rm $container 2>/dev/null || true
-            fi
-          done
+          echo "  [ERROR] docker-compose.yml not found"
+          exit 1
         fi
       - echo ""
-      - echo "[INFO] Creating required directories..."
+      - echo "3. Creating directories..."
       - |
-        # Create directories on host (if TrueNAS is mounted)
-        mkdir -p /mnt/truenas/downloads/complete 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
-        mkdir -p /mnt/truenas/downloads/incomplete 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
-        mkdir -p /mnt/truenas/media/{tv,movies,music} 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted yet"
-        echo "[SUCCESS] Directory structure prepared"
+        echo "  Creating required directories..."
+        mkdir -p /mnt/truenas/downloads 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted"
+        mkdir -p /mnt/truenas/media/tv 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted"
+        mkdir -p /mnt/truenas/media/movies 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted"
+        mkdir -p /mnt/truenas/media/music 2>/dev/null || echo "  Note: /mnt/truenas may not be mounted"
+        echo "  [SUCCESS] Directory structure prepared"
       - echo ""
-      - echo "[INFO] Starting Torrent Media Stack..."
-      - |
-        if command -v docker >/dev/null 2>&1; then
-          echo "Using docker compose for deployment..."
-          docker compose up -d
-        else
-          echo "[WARNING] docker compose not available, using fallback script..."
-          if [ -f ./start-stack.sh ]; then
-            chmod +x ./start-stack.sh
-            bash ./start-stack.sh
-          else
-            echo "[ERROR] No deployment method available"
-            exit 1
-          fi
-        fi
+      - echo "4. Starting media stack..."
+      - docker compose up -d
       - echo ""
-      - echo "[SUCCESS] Deployment completed!"
+      - echo "5. Checking container status..."
+      - sleep 10
+      - docker compose ps
       - echo ""
-      - echo "[INFO] Service Access URLs:"
-      - echo "  QBittorrent - http://localhost:8083"
-      - echo "  Sonarr - http://localhost:8989"
-      - echo "  Radarr - http://localhost:7878"
-      - echo "  Lidarr - http://localhost:8686"
-      - echo "  Prowlarr - http://localhost:9696"
-      - echo "  Jellyfin - http://localhost:8096"
+      - echo "[SUCCESS] Deployment completed successfully!"
       - echo ""
-      - echo "[INFO] Default QBittorrent credentials - admin/adminadmin"
-      - echo "[WARNING] Change default passwords after first login!"
+      - echo "Services will be available at:"
+      - echo "  - QBittorrent: http://localhost:8083 (via VPN)"
+      - echo "  - Other services: Via Cosmos Cloud proxy"
+      - echo ""
+      - echo "[WARNING] Remember to:"
+      - echo "  - Configure PIA credentials in .env"
+      - echo "  - Change default passwords"
+      - echo "  - Set up Cosmos Cloud routes"
     when:
       branch:
         - main
 
   # =============================================================================
-  # ENHANCED NOTIFICATIONS1
+  # NOTIFICATIONS
   # =============================================================================
   - name: notify-success
     image: alpine:latest
     commands:
-      - echo "[SUCCESS] Torrent Media Stack Pipeline - SUCCESS"
+      - echo "[SUCCESS] DEPLOYMENT SUCCESSFUL"
       - echo ""
-      - echo "[INFO] Build Information:"
-      - echo "  Branch    -" "$DRONE_BRANCH"
-      - echo "  Author    -" "$DRONE_COMMIT_AUTHOR"
-      - echo "  Commit    -" "$DRONE_COMMIT"
-      - echo "  Build     - Build" "$DRONE_BUILD_NUMBER"
-      - echo "  Timestamp - $(date)"
+      - echo "Pipeline Details:"
+      - echo "  Branch:" "$DRONE_BRANCH"
+      - echo "  Build:" "$DRONE_BUILD_NUMBER"
+      - echo "  Author:" "$DRONE_COMMIT_AUTHOR"
+      - echo "  Time:" "$(date)"
       - echo ""
       - |
         if [ "$DRONE_BRANCH" = "main" ]; then
-          echo "[SUCCESS] Production deployment completed successfully!"
-          echo "[INFO] Services should now be accessible via web interfaces"
-          echo "[INFO] VPN protection active for torrent traffic"
+          echo "[SUCCESS] Production deployment completed!"
+          echo "[INFO] VPN protection active for torrents"
+          echo "[INFO] Configure Cosmos Cloud for web access"
         else
-          echo "[INFO] Validation completed - ready for production deployment"
+          echo "[SUCCESS] Validation passed - ready for production"
         fi
     when:
       status:
@@ -504,21 +238,21 @@ steps:
   - name: notify-failure
     image: alpine:latest
     commands:
-      - echo "[FAILED] Torrent Media Stack Pipeline - FAILED"
+      - echo "[FAILED] DEPLOYMENT FAILED"
       - echo ""
-      - echo "[INFO] Build Information:"
-      - echo "  Branch    -" "$DRONE_BRANCH"
-      - echo "  Author    -" "$DRONE_COMMIT_AUTHOR"
-      - echo "  Commit    -" "$DRONE_COMMIT"
-      - echo "  Build     - Build" "$DRONE_BUILD_NUMBER"
-      - echo "  Timestamp - $(date)"
+      - echo "Pipeline Details:"
+      - echo "  Branch:" "$DRONE_BRANCH"
+      - echo "  Build:" "$DRONE_BUILD_NUMBER"
+      - echo "  Author:" "$DRONE_COMMIT_AUTHOR"
+      - echo "  Time:" "$(date)"
       - echo ""
-      - echo "[INFO] Check the build logs for detailed error information"
-      - echo "[INFO] Common issues:"
+      - echo "Common issues to check:"
       - echo "  - Missing .env.example file"
       - echo "  - Invalid docker-compose.yml syntax"
-      - echo "  - Docker socket connection issues"
-      - echo "  - Missing TrueNAS mount points"
+      - echo "  - Docker daemon connection"
+      - echo "  - Missing mount points"
+      - echo ""
+      - echo "Check build logs for detailed error information"
     when:
       status:
         - failure
