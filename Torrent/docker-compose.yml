@@ -47,6 +47,7 @@ services:
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
+    hostname: sonarr
     environment:
       - PUID=1000
       - PGID=1000
@@ -55,8 +56,8 @@ services:
       - sonarr-config:/config
       - /mnt/truenas/media/tv:/tv
       - /mnt/truenas/downloads:/downloads
-    ports:
-      - "8989:8989"
+    expose:
+      - "8989"  # Internal port only - Cosmos Cloud will proxy
     restart: unless-stopped
     networks:
       - media-network
@@ -65,6 +66,7 @@ services:
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
+    hostname: radarr
     environment:
       - PUID=1000
       - PGID=1000
@@ -73,8 +75,8 @@ services:
       - radarr-config:/config
       - /mnt/truenas/media/movies:/movies
       - /mnt/truenas/downloads:/downloads
-    ports:
-      - "7878:7878"
+    expose:
+      - "7878"  # Internal port only - Cosmos Cloud will proxy
     restart: unless-stopped
     networks:
       - media-network
@@ -83,6 +85,7 @@ services:
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
+    hostname: lidarr
     environment:
       - PUID=1000
       - PGID=1000
@@ -91,8 +94,8 @@ services:
       - lidarr-config:/config
       - /mnt/truenas/media/music:/music
       - /mnt/truenas/downloads:/downloads
-    ports:
-      - "8686:8686"
+    expose:
+      - "8686"  # Internal port only - Cosmos Cloud will proxy
     restart: unless-stopped
     networks:
       - media-network
@@ -101,14 +104,15 @@ services:
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
+    hostname: prowlarr
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=America/Chicago  # Central Time Zone
     volumes:
       - prowlarr-config:/config
-    ports:
-      - "9696:9696"
+    expose:
+      - "9696"  # Internal port only - Cosmos Cloud will proxy
     restart: unless-stopped
     networks:
       - media-network
