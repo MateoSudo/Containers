@@ -149,6 +149,7 @@ volumes:
   jellyfin-config:
 
 networks:
+  # Custom media network for internal service communication and Cosmos Cloud discovery
   media-network:
     driver: bridge
     ipam:
