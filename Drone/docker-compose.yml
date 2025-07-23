@@ -19,7 +19,7 @@ services:
     # Cosmos Cloud will route drone.mrintellisense.com → http://drone-server:80
     # No host port mapping - keeps everything internal to Docker networks
     expose:
-      - "80"  # Expose port 80 internally to Docker network only
+      - "8082"  # Expose port 80 internally to Docker network only
     
     # Persistent data storage for SQLite database and configuration
     volumes:
@@ -72,7 +72,7 @@ services:
     
     # Health check to ensure service is responding on port 80
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/healthz"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
