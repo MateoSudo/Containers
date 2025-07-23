@@ -12,18 +12,18 @@ services:
   # =============================================================================
   drone-server:
     image: drone/drone:2
-    container_name: drone-server
-    hostname: drone-server
+    container_name: drone
+    hostname: drone
     
     # Port exposure: Only expose to Docker network for Cosmos Cloud discovery
-    # Cosmos Cloud will route drone.mrintellisense.com → http://drone-server:8082
+    # Cosmos Cloud will route drone.mrintellisense.com → http://drone:8082
     # No host port mapping - keeps everything internal to Docker networks
     expose:
       - "8082"  # Expose port 8082 internally to Docker network only
     
     # Persistent data storage for SQLite database and configuration
     volumes:
-      - drone-server-data:/data  # Named volume for data persistence
+      - drone-data:/data  # Named volume for data persistence
      
     # Docker networks for service discovery and Cosmos Cloud integration
     networks:
@@ -133,16 +133,16 @@ networks:
 # DOCKER VOLUMES - Persistent storage
 # =============================================================================
 volumes:
-  drone-server-data:
+  drone-data:
     driver: local
-    name: drone-server-data
+    name: drone-data
 
 # =============================================================================
 # COSMOS CLOUD INTEGRATION SETUP & NETWORKING
 # =============================================================================
 # 1. Cosmos Cloud Service Configuration:
 #    - Service Name: drone-server
-#    - Container: drone-server
+#    - Container: drone
 #    - Port: 8082
 #    - Domain: drone.mrintellisense.com
 #    - SSL: Let's Encrypt (handled by Cosmos Cloud)
@@ -161,12 +161,12 @@ volumes:
 #    - Simple but less isolated
 #
 # 3. DNS Resolution Flow:
-#    - Internal: drone-runner → drone-server (via Docker DNS)
-#    - External: Internet → Cosmos Cloud → drone-server (via Docker socket/API)
+#    - Internal: drone-runner → drone (via Docker DNS)
+#    - External: Internet → Cosmos Cloud → drone (via Docker socket/API)
 #
 # 4. Troubleshooting Commands:
 #    docker network ls
-#    docker inspect drone-server
+#    docker inspect drone
 #    docker logs cosmos-container-name
 #
 # 5. Environment Variables Required in .env file:
@@ -175,8 +175,8 @@ volumes:
 #
 # NETWORK TROUBLESHOOTING
 # 1. Check networks: docker network ls
-# 2. Inspect container: docker inspect Drone
-# 3. Test connectivity: docker exec cosmos-container ping Drone
+# 2. Inspect container: docker inspect drone
+# 3. Test connectivity: docker exec cosmos-container ping drone
 # 4. Check Cosmos logs for discovery issues
 #
 # SECURITY CONSIDERATIONS
