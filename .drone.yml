@@ -59,7 +59,7 @@ steps:
       - echo ""
       - echo "3. Security scan..."
       - |
-        if grep -i "password\|secret\|key" docker-compose.yml | grep -v "from_secret\|_FILE\|\$${.*}" | grep -q .; then
+        if grep -i "password\|secret\|key" docker-compose.yml | grep -v "from_secret\|_FILE\|\\${.*}" | grep -q .; then
           echo "[WARNING] Potential hardcoded secrets detected"
           echo "Consider using environment variables or secrets"
         else
@@ -366,10 +366,10 @@ steps:
           echo "[WARNING] No docker-compose.yml found, skipping compose down"
           # Fallback to individual container cleanup
           for container in pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin; do
-            if docker ps -a --format "{{.Names}}" | grep -q "^$${container}$"; then
-              echo "  Stopping $$container..."
-              docker stop $$container 2>/dev/null || true
-              docker rm $$container 2>/dev/null || true
+            if docker ps -a --format "{{.Names}}" | grep -q "^$container$"; then
+              echo "  Stopping $container..."
+              docker stop $container 2>/dev/null || true
+              docker rm $container 2>/dev/null || true
             fi
           done
         fi
