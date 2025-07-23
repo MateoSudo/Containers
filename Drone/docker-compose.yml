@@ -10,20 +10,20 @@ services:
   # =============================================================================
   # DRONE SERVER - Main CI/CD orchestrator and web interface
   # =============================================================================
-  drone-server:
+  Drone:
     image: drone/drone:2
-    container_name: drone-server
-    hostname: drone-server
+    container_name: Drone
+    hostname: Drone
     
     # Port exposure: Only expose to Docker network for Cosmos Cloud discovery
-    # Cosmos Cloud will route drone.mrintellisense.com → http://drone-server:80
+    # Cosmos Cloud will route drone.mrintellisense.com → http://Drone:80
     # No host port mapping - keeps everything internal to Docker networks
     expose:
       - "8082"  # Expose port 80 internally to Docker network only
     
     # Persistent data storage for SQLite database and configuration
     volumes:
-      - drone-server-data:/data  # Named volume for data persistence
+      - Drone-data:/data  # Named volume for data persistence
      
     # Docker networks for service discovery and Cosmos Cloud integration
     networks:
@@ -88,7 +88,7 @@ services:
     
     # Wait for Drone server to be healthy before starting
     depends_on:
-      drone-server:
+      Drone:
         condition: service_healthy
     
     # Use same Docker network for service discovery
@@ -103,8 +103,8 @@ services:
     
     # Runner configuration using .env file variables
     environment:
-      # Connection to Drone server using Docker DNS (drone-server service name)
-      - DRONE_RPC_HOST=${DRONE_RPC_HOST}  # drone-server:80
+      # Connection to Drone server using Docker DNS (Drone service name)
+      - DRONE_RPC_HOST=${DRONE_RPC_HOST}  # Drone:80
       - DRONE_RPC_PROTO=${DRONE_RPC_PROTO}  # http (internal communication)
       
       # Shared secret for secure server-runner authentication
@@ -156,16 +156,16 @@ networks:
 # DOCKER VOLUMES - Persistent storage
 # =============================================================================
 volumes:
-  drone-server-data:
+  Drone-data:
     driver: local
-    name: drone-server-data
+    name: Drone-data
 
 # =============================================================================
 # COSMOS CLOUD INTEGRATION SETUP & NETWORKING
 # =============================================================================
 # 1. Cosmos Cloud Service Configuration:
-#    - Service Name: drone-server
-#    - Container: drone-server
+#    - Service Name: Drone
+#    - Container: Drone
 #    - Port: 80
 #    - Domain: drone.mrintellisense.com
 #    - SSL: Let's Encrypt (handled by Cosmos Cloud)
@@ -188,8 +188,8 @@ volumes:
 #    - Most flexible but requires Docker socket access
 #
 # 3. DNS Resolution Flow:
-#    - Internal: drone-runner → drone-server (via Docker DNS)
-#    - External: Internet → Cosmos Cloud → drone-server (via network/socket)
+#    - Internal: drone-runner → Drone (via Docker DNS)
+#    - External: Internet → Cosmos Cloud → Drone (via network/socket)
 #
 # 4. To determine your Cosmos Cloud network:
 #    docker network ls
@@ -201,8 +201,8 @@ volumes:
 #
 # NETWORK TROUBLESHOOTING
 # 1. Check networks: docker network ls
-# 2. Inspect container: docker inspect drone-server
-# 3. Test connectivity: docker exec cosmos-container ping drone-server
+# 2. Inspect container: docker inspect Drone
+# 3. Test connectivity: docker exec cosmos-container ping Drone
 # 4. Check Cosmos logs for discovery issues
 #
 # SECURITY CONSIDERATIONS
