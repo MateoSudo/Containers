@@ -18,6 +18,60 @@ volumes:
 
 steps:
   # =============================================================================
+  # YAML VALIDATION & DEBUGGING
+  # =============================================================================
+  - name: validate-yaml
+    image: alpine:latest
+    commands:
+      - echo "[INFO] Validating Drone YAML syntax and debugging..."
+      - apk add --no-cache yq
+      - echo ""
+      - echo "1. YAML Syntax Validation:"
+      - |
+        if yq eval '.kind' .drone.yml >/dev/null 2>&1; then
+          echo "  [SUCCESS] YAML syntax is valid"
+        else
+          echo "  [ERROR] YAML syntax error detected:"
+          yq eval '.kind' .drone.yml 2>&1 || true
+          echo ""
+          echo "  Checking for common issues:"
+          # Check for tab characters
+          if grep -P '\t' .drone.yml; then
+            echo "  [ERROR] Tab characters found - use spaces only"
+          fi
+          # Check for trailing spaces
+          if grep ' $' .drone.yml; then
+            echo "  [WARNING] Trailing spaces found"
+          fi
+          exit 1
+        fi
+      - echo ""
+      - echo "2. Variable Reference Check:"
+      - |
+        echo "  Checking for problematic variable syntax..."
+        # Look for potential issues
+        if grep -n '$$' .drone.yml; then
+          echo "  [ERROR] Double dollar signs found (line numbers above)"
+        fi
+        if grep -n '\${[^}]*\${' .drone.yml; then
+          echo "  [ERROR] Nested variable references found"
+        fi
+        if grep -n '\$[A-Za-z_][A-Za-z0-9_]*[^A-Za-z0-9_\s})]' .drone.yml | head -5; then
+          echo "  [INFO] Variable references found (first 5 shown above - these should be OK)"
+        fi
+        echo "  [SUCCESS] Variable syntax check completed"
+      - echo ""
+      - echo "3. Structure Validation:"
+      - |
+        echo "  Pipeline kind: $(yq eval '.kind' .drone.yml)"
+        echo "  Pipeline type: $(yq eval '.type' .drone.yml)"
+        echo "  Pipeline name: $(yq eval '.name' .drone.yml)"
+        echo "  Steps count: $(yq eval '.steps | length' .drone.yml)"
+        echo "  [SUCCESS] Basic structure validated"
+      - echo ""
+      - echo "[SUCCESS] YAML validation completed successfully!"
+
+  # =============================================================================
   # OPTIMIZED VALIDATION (Single Container)1
   # =============================================================================
   - name: validate-and-prepare
@@ -333,6 +387,12 @@ steps:
         path: /var/run/docker.sock
     commands:
       - echo "[INFO] Starting Production Deployment..."
+      - echo "[DEBUG] Drone environment variables:"
+      - echo "  DRONE_BRANCH:" "$DRONE_BRANCH"
+      - echo "  DRONE_COMMIT:" "$DRONE_COMMIT"  
+      - echo "  DRONE_COMMIT_AUTHOR:" "$DRONE_COMMIT_AUTHOR"
+      - echo "  DRONE_BUILD_NUMBER:" "$DRONE_BUILD_NUMBER"
+      - echo ""
       - apk add --no-cache bash python3 py3-pip docker-compose
       - cd Torrent
       - echo ""
@@ -423,9 +483,9 @@ steps:
       - echo "[SUCCESS] Torrent Media Stack Pipeline - SUCCESS"
       - echo ""
       - echo "[INFO] Build Information:"
-      - echo "  Branch    - $DRONE_BRANCH"
-      - echo "  Author    - $DRONE_COMMIT_AUTHOR"
-      - echo "  Commit    - $DRONE_COMMIT"
+      - echo "  Branch    -" "$DRONE_BRANCH"
+      - echo "  Author    -" "$DRONE_COMMIT_AUTHOR"
+      - echo "  Commit    -" "$DRONE_COMMIT"
       - echo "  Build     - #$DRONE_BUILD_NUMBER"
       - echo "  Timestamp - $(date)"
       - echo ""
@@ -447,9 +507,9 @@ steps:
       - echo "[FAILED] Torrent Media Stack Pipeline - FAILED"
       - echo ""
       - echo "[INFO] Build Information:"
-      - echo "  Branch    - $DRONE_BRANCH"
-      - echo "  Author    - $DRONE_COMMIT_AUTHOR"
-      - echo "  Commit    - $DRONE_COMMIT"
+      - echo "  Branch    -" "$DRONE_BRANCH"
+      - echo "  Author    -" "$DRONE_COMMIT_AUTHOR"
+      - echo "  Commit    -" "$DRONE_COMMIT"
       - echo "  Build     - #$DRONE_BUILD_NUMBER"
       - echo "  Timestamp - $(date)"
       - echo ""
