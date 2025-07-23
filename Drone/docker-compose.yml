@@ -107,9 +107,7 @@ services:
       # Network configuration for pipeline containers - use Docker network
       - DRONE_RUNNER_NETWORKS=${DRONE_RUNNER_NETWORKS}  # drone-network
       
-      # Enhanced debugging for troubleshooting in Proxmox environment
-      - DRONE_DEBUG=true
-      - DRONE_TRACE=true
+
     
     # Restart policy: Always restart unless explicitly stopped
     restart: unless-stopped
@@ -141,7 +139,7 @@ volumes:
 # COSMOS CLOUD INTEGRATION SETUP & NETWORKING
 # =============================================================================
 # 1. Cosmos Cloud Service Configuration:
-#    - Service Name: drone-server
+#    - Service Name: drone
 #    - Container: drone
 #    - Port: 8082
 #    - Domain: drone.mrintellisense.com
