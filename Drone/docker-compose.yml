@@ -166,3 +166,10 @@ networks:
 # 4. Privileged runner access requires careful pipeline security review
 # 5. Docker socket access enables container deployment but requires security review
 # =============================================================================
+
+# =============================================================================
+# DOCKER VOLUMES
+# =============================================================================
+volumes:
+  drone-server-data:
+    driver: local
