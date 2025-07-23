@@ -19,6 +19,8 @@ services:
     volumes:
       - pia-data:/pia
       - /lib/modules:/lib/modules:ro
+    ports:
+      - "8083:8083"  # QBittorrent WebUI port (shared via network_mode)
     restart: unless-stopped
     networks:
       - media-network
@@ -36,8 +38,8 @@ services:
       - qbittorrent-config:/config
       - /mnt/truenas/downloads:/downloads
       - /mnt/truenas/torrents:/torrents
-    ports:
-      - "8083:8083"
+    # Note: No port mapping when using network_mode: service:
+    # Port 8083 will be accessible through the pia-vpn container
     network_mode: service:pia-vpn
     depends_on:
       - pia-vpn
