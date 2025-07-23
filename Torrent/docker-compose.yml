@@ -37,7 +37,6 @@ services:
     volumes:
       - qbittorrent-config:/config
       - /mnt/truenas/downloads:/downloads
-      - /mnt/truenas/torrents:/torrents
     # Note: No port mapping when using network_mode: service:
     # Port 8083 will be accessible through the pia-vpn container
     network_mode: service:pia-vpn

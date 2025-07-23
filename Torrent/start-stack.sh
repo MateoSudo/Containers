@@ -6,10 +6,15 @@ echo "🚀 Starting Torrent Media Stack deployment..."
 # Ensure we're in the right directory
 cd "$(dirname "$0")"
 
-# Stop any existing containers with our naming convention
-echo "Stopping existing containers..."
-docker stop qbittorrent sonarr radarr lidarr prowlarr jellyfin pia-vpn 2>/dev/null || true
-docker rm qbittorrent sonarr radarr lidarr prowlarr jellyfin pia-vpn 2>/dev/null || true
+# Stop any existing stack
+echo "Stopping existing stack..."
+if [ -f docker-compose.yml ]; then
+    docker compose down --remove-orphans 2>/dev/null || echo "No existing stack found"
+else
+    # Fallback to individual container cleanup
+    docker stop qbittorrent sonarr radarr lidarr prowlarr jellyfin pia-vpn 2>/dev/null || true
+    docker rm qbittorrent sonarr radarr lidarr prowlarr jellyfin pia-vpn 2>/dev/null || true
+fi
 
 # Create necessary directories
 echo "Creating media directories..."

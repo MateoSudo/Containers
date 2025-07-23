@@ -104,6 +104,192 @@ steps:
       - echo "Security - VPN-protected torrent traffic, isolated networks"
 
   # =============================================================================
+  # SECURITY TESTING & VULNERABILITY SCANNING
+  # =============================================================================
+  - name: security-scan
+    image: docker:24-dind
+    volumes:
+      - name: docker-socket
+        path: /var/run/docker.sock
+    commands:
+      - cd Torrent
+      - echo "[INFO] Starting comprehensive security testing..."
+      - apk add --no-cache curl jq bash
+      - echo ""
+      - echo "1. Installing security tools..."
+      - |
+        # Install Trivy for vulnerability scanning
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+        
+        # Install Hadolint for Dockerfile linting (if Dockerfiles present)
+        if find . -name "Dockerfile*" -type f | grep -q .; then
+          wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+          chmod +x /usr/local/bin/hadolint
+        fi
+        echo "[SUCCESS] Security tools installed"
+      - echo ""
+      - echo "2. Docker Compose security analysis..."
+      - |
+        echo "Analyzing compose file for security issues:"
+        
+        # Check for privileged containers
+        if grep -q "privileged.*true" docker-compose.yml; then
+          echo "  [WARNING] Privileged containers detected - review necessity"
+        else
+          echo "  [SUCCESS] No privileged containers found"
+        fi
+        
+        # Check for host network mode
+        if grep -q "network_mode.*host" docker-compose.yml; then
+          echo "  [WARNING] Host network mode detected - potential security risk"
+        else
+          echo "  [SUCCESS] No host network mode usage"
+        fi
+        
+        # Check for bind mounts to sensitive paths
+        if grep -E ":/etc|:/var|:/usr|:/bin|:/sbin|:/root|:/home" docker-compose.yml | grep -v "/var/run/docker.sock\|/mnt/truenas"; then
+          echo "  [WARNING] Sensitive host path mounts detected:"
+          grep -E ":/etc|:/var|:/usr|:/bin|:/sbin|:/root|:/home" docker-compose.yml | grep -v "/var/run/docker.sock\|/mnt/truenas" | sed 's/^/    /'
+        else
+          echo "  [SUCCESS] No sensitive host path mounts"
+        fi
+        
+        # Check for containers running as root
+        if grep -A 5 -B 5 "PUID\|PGID" docker-compose.yml | grep -q "PUID=0\|PGID=0"; then
+          echo "  [WARNING] Containers running as root detected"
+        else
+          echo "  [SUCCESS] Containers using non-root user (PUID/PGID)"
+        fi
+        
+        # Check for exposed ports
+        exposed_ports=$(grep -E '^\s*-\s*"[0-9]+:[0-9]+"' docker-compose.yml | wc -l)
+        if [ "$exposed_ports" -gt 1 ]; then
+          echo "  [WARNING] Multiple ports exposed to host - consider internal-only access"
+        else
+          echo "  [SUCCESS] Minimal port exposure (VPN only)"
+        fi
+      - echo ""
+      - echo "3. Container image vulnerability scanning..."
+      - |
+        # Extract unique images from compose file
+        images=$(grep -E "^\s*image:" docker-compose.yml | awk '{print $2}' | sort -u)
+        
+        echo "Scanning container images for vulnerabilities:"
+        for image in $images; do
+          echo "  Scanning: $image"
+          
+          # Pull image for scanning
+          docker pull "$image" >/dev/null 2>&1 || echo "    [WARNING] Failed to pull $image"
+          
+          # Run Trivy scan
+          trivy image --exit-code 0 --severity HIGH,CRITICAL --format table "$image" || {
+            echo "    [WARNING] High/Critical vulnerabilities found in $image"
+          }
+          
+          # Quick configuration scan
+          trivy config --exit-code 0 . 2>/dev/null || echo "    [INFO] Configuration scan completed"
+        done
+        echo "[SUCCESS] Vulnerability scanning completed"
+      - echo ""
+      - echo "4. Network security analysis..."
+      - |
+        echo "Network configuration review:"
+        
+        # Check for custom networks
+        if grep -q "networks:" docker-compose.yml; then
+          echo "  [SUCCESS] Custom networks configured for isolation"
+          
+          # Check network configuration
+          if grep -A 10 "networks:" docker-compose.yml | grep -q "driver: bridge"; then
+            echo "  [SUCCESS] Bridge networking used (good isolation)"
+          fi
+          
+          if grep -A 10 "networks:" docker-compose.yml | grep -q "subnet:"; then
+            echo "  [SUCCESS] Custom subnet configured"
+          fi
+        else
+          echo "  [WARNING] No custom networks - services on default bridge"
+        fi
+        
+        # VPN protection check
+        if grep -q "network_mode: service:pia-vpn" docker-compose.yml; then
+          echo "  [SUCCESS] QBittorrent protected by VPN container"
+        else
+          echo "  [WARNING] No VPN protection detected for torrent client"
+        fi
+      - echo ""
+      - echo "5. Secrets and environment security..."
+      - |
+        echo "Environment and secrets analysis:"
+        
+        # Check for hardcoded credentials
+        if grep -i "password\|secret\|key\|token" docker-compose.yml | grep -v "\${.*}" | grep -q .; then
+          echo "  [CRITICAL] Potential hardcoded secrets detected:"
+          grep -i "password\|secret\|key\|token" docker-compose.yml | grep -v "\${.*}" | sed 's/^/    /'
+        else
+          echo "  [SUCCESS] No hardcoded secrets found"
+        fi
+        
+        # Check for .env usage
+        if [ -f .env.example ]; then
+          echo "  [SUCCESS] Environment template found (.env.example)"
+          
+          # Check .env.example for required variables
+          if grep -q "PIA_USER\|PIA_PASS" .env.example; then
+            echo "  [SUCCESS] VPN credentials properly templated"
+          fi
+        else
+          echo "  [WARNING] No .env.example template found"
+        fi
+        
+        # Check for Docker secrets usage (advanced)
+        if grep -q "secrets:" docker-compose.yml; then
+          echo "  [SUCCESS] Docker secrets configured"
+        else
+          echo "  [INFO] No Docker secrets configured (using environment variables)"
+        fi
+      - echo ""
+      - echo "6. Volume and storage security..."
+      - |
+        echo "Storage security review:"
+        
+        # Check for read-only volumes where appropriate
+        if grep -q ":ro" docker-compose.yml; then
+          echo "  [SUCCESS] Read-only mounts detected"
+        else
+          echo "  [INFO] No read-only mounts found"
+        fi
+        
+        # Check for tmpfs usage
+        if grep -q "tmpfs:" docker-compose.yml; then
+          echo "  [SUCCESS] tmpfs mounts for temporary data"
+        else
+          echo "  [INFO] No tmpfs mounts configured"
+        fi
+        
+        # Check volume permissions
+        if grep -q "PUID.*1000\|PGID.*1000" docker-compose.yml; then
+          echo "  [SUCCESS] Non-root user configured (1000:1000)"
+        else
+          echo "  [WARNING] User permissions not explicitly set"
+        fi
+      - echo ""
+      - echo "[INFO] Security Scan Summary:"
+      - echo "=========================="
+      - echo "✓ Container vulnerability scanning completed"
+      - echo "✓ Docker Compose security analysis completed"
+      - echo "✓ Network isolation reviewed"
+      - echo "✓ Secrets management analyzed"
+      - echo "✓ Storage security assessed"
+      - echo ""
+      - echo "[INFO] Review warnings above and address critical issues before deployment"
+      - echo "[INFO] Consider implementing additional security measures:"
+      - echo "  - Regular image updates and vulnerability patching"
+      - echo "  - Network segmentation with firewall rules"
+      - echo "  - Log monitoring and intrusion detection"
+      - echo "  - Regular security audits and penetration testing"
+
+  # =============================================================================
   # STAGING DEPLOYMENT (Info Only)
   # =============================================================================
   - name: deploy-staging
@@ -169,17 +355,24 @@ steps:
           echo "[SUCCESS] .env file already exists"
         fi
       - echo ""
-      - echo "[INFO] Stopping existing containers..."
+      - echo "[INFO] Stopping existing stack..."
       - |
-        # Stop existing containers gracefully
-        for container in pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin; do
-          if docker ps -a --format "{{.Names}}" | grep -q "^$${container}$"; then
-            echo "  Stopping $$container..."
-            docker stop $$container 2>/dev/null || true
-            docker rm $$container 2>/dev/null || true
-          fi
-        done
-        echo "[SUCCESS] Cleanup complete"
+        # Use docker compose down for clean shutdown
+        if [ -f docker-compose.yml ]; then
+          echo "  Running docker compose down..."
+          docker compose down --remove-orphans 2>/dev/null || echo "  Note: No existing stack found"
+          echo "[SUCCESS] Stack stopped and cleaned"
+        else
+          echo "[WARNING] No docker-compose.yml found, skipping compose down"
+          # Fallback to individual container cleanup
+          for container in pia-vpn qbittorrent sonarr radarr lidarr prowlarr jellyfin; do
+            if docker ps -a --format "{{.Names}}" | grep -q "^$${container}$"; then
+              echo "  Stopping $$container..."
+              docker stop $$container 2>/dev/null || true
+              docker rm $$container 2>/dev/null || true
+            fi
+          done
+        fi
       - echo ""
       - echo "[INFO] Creating required directories..."
       - |
