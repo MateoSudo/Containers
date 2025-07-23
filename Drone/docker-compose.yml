@@ -69,14 +69,6 @@ services:
     
     # Restart policy: Always restart unless explicitly stopped
     restart: unless-stopped
-    
-    # Health check to ensure service is responding on port 80
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   # =============================================================================
   # DRONE RUNNER - Executes CI/CD pipelines with container deployment capability
@@ -86,10 +78,9 @@ services:
     container_name: drone-runner
     hostname: drone-runner
     
-    # Wait for Drone server to be healthy before starting
+    # Wait for Drone server to be ready before starting
     depends_on:
-      drone-server:
-        condition: service_healthy
+      - drone-server
     
     # Use same Docker network for service discovery
     networks:
@@ -127,14 +118,6 @@ services:
     # Privileged mode: Required for container operations and Docker socket access
     # SECURITY NOTE: This gives the runner full access to the host container runtime
     privileged: true
-    
-    # Health check for runner service
-    healthcheck:
-      test: ["CMD", "drone-runner-docker", "--ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
 # =============================================================================
 # DOCKER NETWORKS - Service discovery and Cosmos Cloud integration
