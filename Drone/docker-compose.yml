@@ -28,7 +28,6 @@ services:
     # Docker networks for service discovery and Cosmos Cloud integration
     networks:
       - drone-network           # Internal Drone communication
-      - cosmos-drone-server-3Im  # Cosmos Cloud proxy network
     
     # Environment configuration using .env file variables
     environment:
@@ -130,11 +129,6 @@ networks:
     internal: false  # Allow external access for Cosmos Cloud discovery
     attachable: true  # Allow other containers to connect to this network
 
-  # Cosmos Cloud network - uses existing Cosmos managed network
-  cosmos-drone-server-3Im:
-    external: true  # Use existing Cosmos Cloud network for Drone service
-    name: cosmos-drone-server-3Im
-
 # =============================================================================
 # DOCKER VOLUMES - Persistent storage
 # =============================================================================
@@ -147,36 +141,33 @@ volumes:
 # COSMOS CLOUD INTEGRATION SETUP & NETWORKING
 # =============================================================================
 # 1. Cosmos Cloud Service Configuration:
-#    - Service Name: Drone
-#    - Container: Drone
-#    - Port: 80
+#    - Service Name: drone-server
+#    - Container: drone-server
+#    - Port: 8082
 #    - Domain: drone.mrintellisense.com
 #    - SSL: Let's Encrypt (handled by Cosmos Cloud)
 #
-# 2. Network Communication Options:
+# 2. Network Communication Method:
 #    
-#    OPTION A - Cosmos Cloud on Host Network (most common):
-#    - Cosmos Cloud runs with --net=host or port mapping
-#    - Can access containers via Docker's default bridge gateway
-#    - Remove 'cosmos-network' from networks section if using this
-#    
-#    OPTION B - Cosmos Cloud on Shared Network (recommended):
-#    - Both Cosmos and Drone containers share a network
-#    - Replace 'cosmos-network' with actual Cosmos Cloud network name
-#    - Better isolation and security
-#
-#    OPTION C - Docker Socket Access:
+#    RECOMMENDED APPROACH - Docker Socket Access:
 #    - Cosmos Cloud mounts Docker socket (/var/run/docker.sock)
 #    - Can directly communicate with containers via Docker API
-#    - Most flexible but requires Docker socket access
+#    - Auto-discovers containers without shared networks
+#    - Most flexible and commonly used approach
+#
+#    ALTERNATIVE - Host Network Mode:
+#    - Cosmos Cloud runs with --net=host or port mapping
+#    - Can access containers via Docker's default bridge gateway
+#    - Simple but less isolated
 #
 # 3. DNS Resolution Flow:
-#    - Internal: drone-runner → Drone (via Docker DNS)
-#    - External: Internet → Cosmos Cloud → Drone (via network/socket)
+#    - Internal: drone-runner → drone-server (via Docker DNS)
+#    - External: Internet → Cosmos Cloud → drone-server (via Docker socket/API)
 #
-# 4. To determine your Cosmos Cloud network:
+# 4. Troubleshooting Commands:
 #    docker network ls
-#    docker inspect <cosmos-container-name>
+#    docker inspect drone-server
+#    docker logs cosmos-container-name
 #
 # 5. Environment Variables Required in .env file:
 #    - All the variables you provided are correctly configured
