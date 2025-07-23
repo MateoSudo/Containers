@@ -10,25 +10,25 @@ services:
   # =============================================================================
   # DRONE SERVER - Main CI/CD orchestrator and web interface
   # =============================================================================
-  Drone:
+  drone-server:
     image: drone/drone:2
-    container_name: Drone
-    hostname: Drone
+    container_name: drone-server
+    hostname: drone-server
     
     # Port exposure: Only expose to Docker network for Cosmos Cloud discovery
-    # Cosmos Cloud will route drone.mrintellisense.com → http://Drone:80
+    # Cosmos Cloud will route drone.mrintellisense.com → http://drone-server:8082
     # No host port mapping - keeps everything internal to Docker networks
     expose:
-      - "8082"  # Expose port 80 internally to Docker network only
+      - "8082"  # Expose port 8082 internally to Docker network only
     
     # Persistent data storage for SQLite database and configuration
     volumes:
-      - Drone-data:/data  # Named volume for data persistence
+      - drone-server-data:/data  # Named volume for data persistence
      
     # Docker networks for service discovery and Cosmos Cloud integration
     networks:
       - drone-network           # Internal Drone communication
-      - cosmos-Drone-3Im        # Cosmos Cloud proxy network
+      - cosmos-drone-server-3Im  # Cosmos Cloud proxy network
     
     # Environment configuration using .env file variables
     environment:
@@ -44,7 +44,7 @@ services:
       # Protocol: HTTPS since Cosmos Cloud handles SSL termination with Let's Encrypt
       - DRONE_SERVER_PROTO=${DRONE_SERVER_PROTO}
       
-      # Server port: Configure Drone to run on port 80 internally
+      # Server port: Configure Drone to run on port 8082 internally
       - DRONE_SERVER_PORT=${DRONE_SERVER_PORT}
       
       # Proxy headers: Trust headers from Cosmos Cloud reverse proxy
@@ -88,7 +88,7 @@ services:
     
     # Wait for Drone server to be healthy before starting
     depends_on:
-      Drone:
+      drone-server:
         condition: service_healthy
     
     # Use same Docker network for service discovery
@@ -148,17 +148,17 @@ networks:
     attachable: true  # Allow other containers to connect to this network
 
   # Cosmos Cloud network - uses existing Cosmos managed network
-  cosmos-Drone-3Im:
+  cosmos-drone-server-3Im:
     external: true  # Use existing Cosmos Cloud network for Drone service
-    name: cosmos-Drone-3Im
+    name: cosmos-drone-server-3Im
 
 # =============================================================================
 # DOCKER VOLUMES - Persistent storage
 # =============================================================================
 volumes:
-  Drone-data:
+  drone-server-data:
     driver: local
-    name: Drone-data
+    name: drone-server-data
 
 # =============================================================================
 # COSMOS CLOUD INTEGRATION SETUP & NETWORKING
