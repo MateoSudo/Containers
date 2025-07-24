@@ -41,6 +41,7 @@ fi
 
 echo "[SUCCESS] Torrent Media Stack deployed successfully!"
 echo ""
+<<<<<<< HEAD
 echo "[INFO] Services available via Cosmos Cloud proxy only:"
 echo "   - QBittorrent: http://localhost:8083 (direct access via VPN)"
 echo "   - All other services: Internal only, accessible via Cosmos Cloud"
@@ -55,3 +56,12 @@ echo "   - QBittorrent: Container: pia-vpn, Port: 8083, Domain: qbittorrent.mrin
 echo ""
 echo "[INFO] Network: All services on media-network (172.20.0.0/16)"
 echo "[INFO] Security: Only QBittorrent port exposed to host, all others internal-only"
+=======
+echo "🌐 Services available at:"
+echo "   - QBittorrent: http://localhost:8083"
+echo "   - Sonarr: http://localhost:8989"
+echo "   - Radarr: http://localhost:7878"
+echo "   - Lidarr: http://localhost:8686"
+echo "   - Prowlarr: http://localhost:9696"
+echo "   - Jellyfin: http://localhost:8096"
+>>>>>>> feature/drone-podman-integration
