@@ -7,8 +7,7 @@ RUN apt-get update --fix-missing && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages with retry logic
-RUN --mount=type=cache,target=/root/.cache/pip \
-    for i in {1..3}; do \
+RUN for i in {1..3}; do \
         pip install fastapi uvicorn python-multipart faster-whisper && break || sleep 15; \
     done
 
