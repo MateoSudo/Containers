@@ -36,3 +36,11 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Enhanced directory patterns
+Torrent/config/jellyfin/**
+Torrent/config/lidarr/**  
+Torrent/config/prowlarr/**
+Torrent/config/qbittorrent/**
+Torrent/config/radarr/**
+Torrent/config/sonarr/**
