@@ -8,8 +8,8 @@ cd "$(dirname "$0")"
 
 # Stop any existing containers with our naming convention
 echo "Stopping existing containers..."
-podman stop torrent-qbittorrent torrent-sonarr torrent-radarr torrent-lidarr torrent-prowlarr torrent-jellyfin torrent-pia-vpn 2>/dev/null || true
-podman rm torrent-qbittorrent torrent-sonarr torrent-radarr torrent-lidarr torrent-prowlarr torrent-jellyfin torrent-pia-vpn 2>/dev/null || true
+docker stop torrent-qbittorrent torrent-sonarr torrent-radarr torrent-lidarr torrent-prowlarr torrent-jellyfin torrent-pia-vpn torrent-qbittorrent-proxy 2>/dev/null || true
+docker rm torrent-qbittorrent torrent-sonarr torrent-radarr torrent-lidarr torrent-prowlarr torrent-jellyfin torrent-pia-vpn torrent-qbittorrent-proxy 2>/dev/null || true
 
 # Create necessary directories
 echo "Creating media directories..."
@@ -26,11 +26,11 @@ fi
 
 # Start the stack with named containers
 echo "Starting Torrent Media Stack..."
-if command -v podman-compose &> /dev/null; then
-    # Use podman-compose if available
-    podman-compose up -d
+if command -v docker &> /dev/null; then
+    # Use docker compose
+    docker compose up -d
 else
-    echo "podman-compose not found, please install it"
+    echo "docker not found, please install it"
     exit 1
 fi
 

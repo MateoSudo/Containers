@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  # PIA VPN Container - Routes all torrent traffic
+  pia-vpn:
+    image: qmcgaw/private-internet-access:latest
+    container_name: torrent-pia-vpn
+    hostname: pia-vpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    environment:
+      - USER=${PIA_USER}
+      - PASSWORD=${PIA_PASS}
+      - REGION=${LOC:-netherlands}
+      - PROTOCOL=wireguard
+      - PORT_FORWARDING=on
+      - PORT_FORWARDING_STATUS_FILE=/tmp/gluetun/forwarded_port
+    volumes:
+      - /tmp/gluetun:/tmp/gluetun
+    ports:
+      - "8083:8080"  # qBittorrent WebUI
+      - "6881:6881"  # qBittorrent TCP
+      - "6881:6881/udp"  # qBittorrent UDP
+    networks:
+      - media-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # qBittorrent - Routes through PIA VPN
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: torrent-qbittorrent
+    hostname: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+      - WEBUI_PORT=8080
+    volumes:
+      - ./config/qbittorrent:/config
+      - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/torrents:/torrents
+    network_mode: "container:torrent-pia-vpn"  # Route through VPN
+    depends_on:
+      - pia-vpn
+    restart: unless-stopped
+
+  # Sonarr - TV Series Management
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: torrent-sonarr
+    hostname: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/sonarr:/config
+      - /mnt/truenas/media/tv:/tv
+      - /mnt/truenas/downloads:/downloads
+    ports:
+      - "8989:8989"
+    networks:
+      - media-network
+    restart: unless-stopped
+
+  # Radarr - Movie Management
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: torrent-radarr
+    hostname: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/radarr:/config
+      - /mnt/truenas/media/movies:/movies
+      - /mnt/truenas/downloads:/downloads
+    ports:
+      - "7878:7878"
+    networks:
+      - media-network
+    restart: unless-stopped
+
+  # Lidarr - Music Management
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: torrent-lidarr
+    hostname: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/lidarr:/config
+      - /mnt/truenas/media/music:/music
+      - /mnt/truenas/downloads:/downloads
+    ports:
+      - "8686:8686"
+    networks:
+      - media-network
+    restart: unless-stopped
+
+  # Prowlarr - Indexer Management
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: torrent-prowlarr
+    hostname: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/prowlarr:/config
+    ports:
+      - "9696:9696"
+    networks:
+      - media-network
+    restart: unless-stopped
+
+  # Jellyfin - Media Server
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: torrent-jellyfin
+    hostname: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/jellyfin:/config
+      - /mnt/truenas/media:/media
+    ports:
+      - "8096:8096"
+    networks:
+      - media-network
+    restart: unless-stopped
+
+  # Nginx Proxy for qBittorrent access at port 80
+  qbittorrent-proxy:
+    image: nginx:alpine
+    container_name: torrent-qbittorrent-proxy
+    hostname: qbittorrent
+    volumes:
+      - ./config/nginx/qbittorrent.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+    networks:
+      - media-network
+    depends_on:
+      - pia-vpn
+    restart: unless-stopped
+
+networks:
+  media-network:
+    driver: bridge
+    name: torrent_media_network 
