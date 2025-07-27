@@ -1,0 +1,62 @@
+version: "3"
+
+services:
+  # Existing Gitea services (extend the main docker-compose.yml)
+  gitea-webhook-github:
+    build: ./webhooks
+    container_name: gitea-webhook-github
+    restart: always
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - webhook-config.env
+    networks:
+      - gitea_network
+      - webhook_network
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./webhooks:/app
+      - /var/log/webhooks:/app/logs
+    command: python github-to-gitea.py
+    depends_on:
+      - gitea
+    labels:
+      - "cosmos.proxy.enabled=true"
+      - "cosmos.proxy.host=github-webhook.mrintellisense.com"
+      - "cosmos.proxy.port=5000"
+      - "cosmos.proxy.proto=http"
+
+  gitea-webhook-gitea:
+    build: ./webhooks
+    container_name: gitea-webhook-gitea
+    restart: always
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - webhook-config.env
+    networks:
+      - gitea_network
+      - webhook_network
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./webhooks:/app
+      - /var/log/webhooks:/app/logs
+    command: python gitea-to-github.py
+    depends_on:
+      - gitea
+    labels:
+      - "cosmos.proxy.enabled=true"
+      - "cosmos.proxy.host=gitea-webhook.mrintellisense.com"
+      - "cosmos.proxy.port=5001"
+      - "cosmos.proxy.proto=http"
+
+networks:
+  gitea_network:
+    external: true
+    name: gitea_network
+  
+  webhook_network:
+    driver: bridge
+    name: webhook_network 

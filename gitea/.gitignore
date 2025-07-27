@@ -10,6 +10,10 @@ data/
 .env.local
 .env.*.local
 
+# Webhook Configuration (contains sensitive credentials)
+webhook-config.env
+*.env.backup
+
 # Logs
 logs/
 *.log
@@ -37,11 +41,7 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Enhanced directory patterns
-Torrent/config/jellyfin/**
-Torrent/config/lidarr/**  
-Torrent/config/prowlarr/**
-Torrent/config/qbittorrent/**
-Torrent/config/radarr/**
-Torrent/config/sonarr/**
-webhook-config.env
+# Webhook logs and temporary files
+/var/log/webhooks/
+webhooks/logs/
+*.backup 
