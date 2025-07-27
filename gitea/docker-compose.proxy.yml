@@ -19,16 +19,20 @@ services:
       - GITEA__oauth2_client__ENABLE_OPENID_SIGNIN=true
     restart: always
     networks:
-      gitea:
-        aliases:
-          - gitea
-          - gitea.local
-          - gitea.mrintellisense.com
-    ports:
-      - "3000:3000"
-      - "222:22"
+      - proxy
+      - gitea-internal
+    # Remove port mappings for reverse proxy setup
+    # ports:
+    #   - "3000:3000"
+    #   - "222:22"
     volumes:
       - /srv/gitea:/data
+    labels:
+      # Cosmos Proxy labels (if using labels for configuration)
+      - "cosmos.proxy.enabled=true"
+      - "cosmos.proxy.host=gitea.mrintellisense.com"
+      - "cosmos.proxy.port=3000"
+      - "cosmos.proxy.proto=http"
 
   db:
     image: postgres:15
@@ -40,14 +44,17 @@ services:
       - POSTGRES_USER=gitea
       - POSTGRES_PASSWORD=gitea
     networks:
-      gitea:
-        aliases:
-          - db
-          - gitea-db
+      - gitea-internal
     volumes:
       - ./postgres:/var/lib/postgresql/data
 
 networks:
-  gitea:
+  # External network for reverse proxy
+  proxy:
+    external: true
+    name: cosmos_proxy
+  
+  # Internal network for service communication
+  gitea-internal:
     driver: bridge
-    name: gitea_network 
+    name: gitea_internal 
