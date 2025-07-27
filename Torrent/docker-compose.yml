@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PIA VPN Container - Routes all torrent traffic
   pia-vpn:
@@ -11,12 +9,14 @@ services:
     devices:
       - /dev/net/tun
     environment:
-      - USER=${PIA_USER}
-      - PASSWORD=${PIA_PASS}
-      - REGION=${LOC:-netherlands}
-      - PROTOCOL=wireguard
-      - PORT_FORWARDING=on
-      - PORT_FORWARDING_STATUS_FILE=/tmp/gluetun/forwarded_port
+      - OPENVPN_USER=${PIA_USER}
+      - OPENVPN_PASSWORD=${PIA_PASS}
+      - SERVER_REGIONS=${LOC:-netherlands}
+      - VPN_SERVICE_PROVIDER=private internet access
+      - VPN_TYPE=openvpn
+      - OPENVPN_PROTOCOL=udp
+      - VPN_PORT_FORWARDING=on
+      - VPN_PORT_FORWARDING_STATUS_FILE=/tmp/gluetun/forwarded_port
     volumes:
       - /tmp/gluetun:/tmp/gluetun
     ports:
@@ -36,7 +36,6 @@ services:
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: torrent-qbittorrent
-    hostname: qbittorrent
     environment:
       - PUID=1000
       - PGID=1000
@@ -151,7 +150,7 @@ services:
     volumes:
       - ./config/nginx/qbittorrent.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "80:80"
+      - "8080:80"
     networks:
       - media-network
     depends_on:

@@ -1,0 +1,126 @@
+# PostgreSQL Database Files
+postgres/
+
+# Docker volumes and data directories
+*/data/
+data/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Docker-related files (if generated)
+.docker/
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# ====================================
+# Container Configuration Directories
+# ====================================
+
+# All container config directories (except nginx which has custom configs)  
+Torrent/config/jellyfin/
+Torrent/config/lidarr/
+Torrent/config/prowlarr/
+Torrent/config/qbittorrent/
+Torrent/config/radarr/
+Torrent/config/sonarr/
+
+# Keep nginx config but ignore any generated files
+*/config/nginx/*.log
+*/config/nginx/cache/
+*/config/nginx/temp/
+
+# ====================================
+# Application-specific files
+# ====================================
+
+# Database files (SQLite and others)
+*.db
+*.db-shm
+*.db-wal
+*.database
+*.sqlite
+*.sqlite3
+
+# Log files and directories
+*/logs/
+**/logs/
+*.log
+*.log.*
+
+# Cache directories
+*/cache/
+**/cache/
+*.cache
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Runtime and temporary files
+*/tmp/
+**/tmp/
+*/temp/
+**/temp/
+pid
+*.pid
+*.lock
+
+# Media server metadata and thumbnails
+*/metadata/
+**/metadata/
+*/transcodes/
+**/transcodes/
+*/thumbnails/
+**/thumbnails/
+*/artwork/
+**/artwork/
+
+# Torrent client files
+*.torrent
+*/incomplete/
+*/complete/
+*/watch/
+*/queue/
+
+# Docker Compose override files
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+
+# Volume mount directories
+*/downloads/
+*/media/
+*/torrents/
+
+# Application state and session files
+*.session
+*.state
+*.json.bak
+*/sessions/
+**/sessions/ 
