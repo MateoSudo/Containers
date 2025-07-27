@@ -1,0 +1,186 @@
+# =============================================================================
+# Drone CI/CD Stack for Docker with Cosmos Cloud Proxy Integration
+# =============================================================================
+# This compose file deploys Drone server and runner for container-based CI/CD
+# Traffic flows: Internet → Cloudflare DNS → DMZ → Cosmos Cloud → Docker Network
+# Wildcard certificate *.mrintellisense.com handled by Cosmos Cloud
+# =============================================================================
+
+services:
+  # =============================================================================
+  # DRONE SERVER - Main CI/CD orchestrator and web interface
+  # =============================================================================
+  drone-server:
+    image: drone/drone:2
+    container_name: drone
+    hostname: drone
+    
+    # Port exposure: Only expose to Docker network for Cosmos Cloud discovery
+    # Cosmos Cloud will route drone.mrintellisense.com → http://drone:8082
+    # No host port mapping - keeps everything internal to Docker networks
+    expose:
+      - "8082"  # Expose port 8082 internally to Docker network only
+    
+    # Persistent data storage for SQLite database and configuration
+    volumes:
+      - drone-data:/data  # Named volume for data persistence
+     
+    # Docker networks for service discovery and Cosmos Cloud integration
+    networks:
+      - drone-network           # Internal Drone communication
+    
+    # Environment configuration using .env file variables
+    environment:
+      # RPC Secret: Secure token for server-runner communication (from .env)
+      - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}
+      
+      # Cookie Secret: Secure token for encrypting cookies (from .env)
+      - DRONE_COOKIE_SECRET=${DRONE_COOKIE_SECRET}
+      
+      # Server host: Must match Cloudflare DNS subdomain (drone.mrintellisense.com)
+      - DRONE_SERVER_HOST=${DRONE_SERVER_HOST}
+      
+      # Protocol: HTTPS since Cosmos Cloud handles SSL termination with Let's Encrypt
+      - DRONE_SERVER_PROTO=${DRONE_SERVER_PROTO}
+      
+      # Server port: Configure Drone to run on port 8082 internally
+      - DRONE_SERVER_PORT=${DRONE_SERVER_PORT}
+      
+      # Proxy headers: Trust headers from Cosmos Cloud reverse proxy
+      - DRONE_SERVER_PROXY_HEADERS=${DRONE_SERVER_PROXY_HEADERS}
+      
+      # GitHub OAuth integration for repository access control
+      - DRONE_GITHUB_SERVER=${DRONE_GITHUB_SERVER}
+      - DRONE_GITHUB_CLIENT_ID=${DRONE_GITHUB_CLIENT_ID}
+      - DRONE_GITHUB_CLIENT_SECRET=${DRONE_GITHUB_CLIENT_SECRET}
+      
+      # Admin user creation: MateoSudo with admin privileges (from .env)
+      - DRONE_USER_CREATE=${DRONE_USER_CREATE}
+      
+      # Database configuration: SQLite for simplicity in containerized environment
+      - DRONE_DATABASE_DRIVER=${DRONE_DATABASE_DRIVER}  # sqlite3
+      - DRONE_DATABASE_DATASOURCE=${DRONE_DATABASE_DATASOURCE}  # /data/database.sqlite
+      
+      # Enhanced logging for debugging in Proxmox LXC environment
+      - DRONE_LOGS_PRETTY=true
+      - DRONE_LOGS_COLOR=true
+      - DRONE_LOGS_DEBUG=true
+    
+    # Restart policy: Always restart unless explicitly stopped
+    restart: unless-stopped
+
+  # =============================================================================
+  # DRONE RUNNER - Executes CI/CD pipelines with container deployment capability
+  # =============================================================================
+  drone-runner:
+    image: drone/drone-runner-docker:1
+    container_name: drone-runner
+    hostname: drone-runner
+    
+    # Wait for Drone server to be ready before starting
+    depends_on:
+      - drone-server
+    
+    # Use same Docker network for service discovery
+    networks:
+      - drone-network
+    
+    # Critical volume mounts for container deployment in CI/CD pipelines
+    volumes:
+      # Docker socket access: Enables runner to deploy containers using Docker
+      # This is essential for CI/CD pipelines that deploy applications
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    
+    # Runner configuration using .env file variables
+    environment:
+      # Connection to Drone server using Docker DNS (Drone service name)
+      - DRONE_RPC_HOST=${DRONE_RPC_HOST}  # Drone:80
+      - DRONE_RPC_PROTO=${DRONE_RPC_PROTO}  # http (internal communication)
+      
+      # Shared secret for secure server-runner authentication
+      - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}  # Must match server secret
+      
+      # Runner capacity and identification (from .env)
+      - DRONE_RUNNER_CAPACITY=${DRONE_RUNNER_CAPACITY}  # Max concurrent builds (2)
+      - DRONE_RUNNER_NAME=${DRONE_RUNNER_NAME}  # docker-runner
+      
+      # Network configuration for pipeline containers - use Docker network
+      - DRONE_RUNNER_NETWORKS=${DRONE_RUNNER_NETWORKS}  # drone-network
+      
+
+    
+    # Restart policy: Always restart unless explicitly stopped
+    restart: unless-stopped
+    
+    # Privileged mode: Required for container operations and Docker socket access
+    # SECURITY NOTE: This gives the runner full access to the host container runtime
+    privileged: true
+
+# =============================================================================
+# DOCKER NETWORKS - Service discovery and Cosmos Cloud integration
+# =============================================================================
+networks:
+  drone-network:
+    driver: bridge
+    name: drone-network
+    # Enable internal DNS resolution between containers
+    internal: false  # Allow external access for Cosmos Cloud discovery
+    attachable: true  # Allow other containers to connect to this network
+
+# =============================================================================
+# DOCKER VOLUMES - Persistent storage
+# =============================================================================
+volumes:
+  drone-data:
+    driver: local
+    name: drone-data
+
+# =============================================================================
+# COSMOS CLOUD INTEGRATION SETUP & NETWORKING
+# =============================================================================
+# 1. Cosmos Cloud Service Configuration:
+#    - Service Name: drone
+#    - Container: drone
+#    - Port: 8082
+#    - Domain: drone.mrintellisense.com
+#    - SSL: Let's Encrypt (handled by Cosmos Cloud)
+#
+# 2. Network Communication Method:
+#    
+#    RECOMMENDED APPROACH - Docker Socket Access:
+#    - Cosmos Cloud mounts Docker socket (/var/run/docker.sock)
+#    - Can directly communicate with containers via Docker API
+#    - Auto-discovers containers without shared networks
+#    - Most flexible and commonly used approach
+#
+#    ALTERNATIVE - Host Network Mode:
+#    - Cosmos Cloud runs with --net=host or port mapping
+#    - Can access containers via Docker's default bridge gateway
+#    - Simple but less isolated
+#
+# 3. DNS Resolution Flow:
+#    - Internal: drone-runner → drone (via Docker DNS)
+#    - External: Internet → Cosmos Cloud → drone (via Docker socket/API)
+#
+# 4. Troubleshooting Commands:
+#    docker network ls
+#    docker inspect drone
+#    docker logs cosmos-container-name
+#
+# 5. Environment Variables Required in .env file:
+#    - All the variables you provided are correctly configured
+#    - DRONE_SERVER_PROXY_HEADERS ensures proper header forwarding
+#
+# NETWORK TROUBLESHOOTING
+# 1. Check networks: docker network ls
+# 2. Inspect container: docker inspect drone
+# 3. Test connectivity: docker exec cosmos-container ping drone
+# 4. Check Cosmos logs for discovery issues
+#
+# SECURITY CONSIDERATIONS
+# 1. RPC_SECRET provides encrypted communication between server and runner
+# 2. GitHub OAuth restricts access to authorized repository collaborators
+# 3. Admin user (MateoSudo) has full access to all Drone functionality
+# 4. Network isolation between services via Docker networks
+# 5. DRONE_SERVER_PROXY_HEADERS ensures proper IP forwarding from Cosmos Cloud
+# =============================================================================

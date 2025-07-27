@@ -1,0 +1,46 @@
+# PostgreSQL Database Files
+postgres/
+
+# Docker volumes and data directories
+*/data/
+data/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Docker-related files (if generated)
+.docker/
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Enhanced directory patterns
+Torrent/config/jellyfin/**
+Torrent/config/lidarr/**  
+Torrent/config/prowlarr/**
+Torrent/config/qbittorrent/**
+Torrent/config/radarr/**
+Torrent/config/sonarr/**

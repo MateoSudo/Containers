@@ -8,8 +8,8 @@ cd "$(dirname "$0")"
 
 # Stop any existing containers with our naming convention
 echo "Stopping existing containers..."
-podman stop torrent-qbittorrent torrent-sonarr torrent-radarr torrent-lidarr torrent-prowlarr torrent-jellyfin torrent-pia-vpn 2>/dev/null || true
-podman rm torrent-qbittorrent torrent-sonarr torrent-radarr torrent-lidarr torrent-prowlarr torrent-jellyfin torrent-pia-vpn 2>/dev/null || true
+docker stop torrent-qbittorrent torrent-sonarr torrent-radarr torrent-lidarr torrent-prowlarr torrent-jellyfin torrent-pia-vpn torrent-qbittorrent-proxy 2>/dev/null || true
+docker rm torrent-qbittorrent torrent-sonarr torrent-radarr torrent-lidarr torrent-prowlarr torrent-jellyfin torrent-pia-vpn torrent-qbittorrent-proxy 2>/dev/null || true
 
 # Create necessary directories
 echo "Creating media directories..."
@@ -26,18 +26,20 @@ fi
 
 # Start the stack with named containers
 echo "Starting Torrent Media Stack..."
-if command -v podman-compose &> /dev/null; then
-    # Use podman-compose if available
-    podman-compose up -d
+if command -v docker &> /dev/null; then
+    # Use docker compose
+    docker compose up -d
 else
-    echo "podman-compose not found, please install it"
+    echo "docker not found, please install it"
     exit 1
 fi
 
 echo "✅ Torrent Media Stack deployed successfully!"
 echo ""
 echo "🌐 Services available at:"
-echo "   - QBittorrent: http://localhost:8080"
+echo "   - QBittorrent (via VPN): http://localhost:8083"
+echo "   - QBittorrent (via Proxy): http://localhost:8080"
+echo "   - QBittorrent (internal): http://qbittorrent:80"
 echo "   - Sonarr: http://localhost:8989"
 echo "   - Radarr: http://localhost:7878"
 echo "   - Lidarr: http://localhost:8686"

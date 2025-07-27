@@ -24,13 +24,11 @@ else
     echo ".env file already exists"
 fi
 
-# Check if podman-compose is installed
-if ! command -v podman-compose &> /dev/null; then
-    echo "podman-compose is not installed. You can install it with:"
-    echo "pip3 install podman-compose"
-    echo "or"
-    echo "sudo dnf install podman-compose  # On Fedora/RHEL"
-    echo "sudo apt install podman-compose  # On Ubuntu/Debian"
+# Check if docker is installed
+if ! command -v docker &> /dev/null; then
+    echo "docker is not installed. You can install it with:"
+    echo "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh"
+    echo "or follow the official Docker installation guide for your OS"
 fi
 
 echo ""
@@ -43,7 +41,7 @@ echo ""
 echo "🚀 Next steps:"
 echo "1. Edit .env file with your PIA credentials: nano .env"
 echo "2. Timezone is set to America/Chicago (Central Time)"
-echo "3. Start the stack: podman-compose up -d"
+echo "3. Start the stack: docker compose up -d"
 echo ""
 echo "🌐 Services will be available at:"
 echo "   - QBittorrent Web UI: http://localhost:8080"

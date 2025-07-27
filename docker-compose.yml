@@ -1,0 +1,53 @@
+version: "3"
+
+services:
+  server:
+    image: gitea/gitea:latest
+    container_name: gitea
+    hostname: gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
+      - GITEA__security__SECRET_KEY=changeme
+      - GITEA__server__DOMAIN=gitea.mrintellisense.com
+      - GITEA__server__ROOT_URL=https://gitea.mrintellisense.com/
+      - GITEA__oauth2_client__ENABLE_OPENID_SIGNIN=true
+    restart: always
+    networks:
+      gitea:
+        aliases:
+          - gitea
+          - gitea.local
+          - gitea.mrintellisense.com
+    ports:
+      - "3000:3000"
+      - "222:22"
+    volumes:
+      - /srv/gitea:/data
+
+  db:
+    image: postgres:15
+    container_name: gitea-db
+    hostname: gitea-db
+    restart: always
+    environment:
+      - POSTGRES_DB=gitea
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=gitea
+    networks:
+      gitea:
+        aliases:
+          - db
+          - gitea-db
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+
+networks:
+  gitea:
+    driver: bridge
+    name: gitea_network 
