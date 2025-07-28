@@ -231,20 +231,7 @@ services:
       - media-network
     restart: unless-stopped
 
-  # Nginx Proxy for qBittorrent access at port 80
-  qbittorrent-proxy:
-    image: nginx:alpine
-    container_name: torrent-qbittorrent-proxy
-    hostname: qbittorrent
-    volumes:
-      - ./config/nginx/qbittorrent.conf:/etc/nginx/conf.d/default.conf:ro
-    ports:
-      - "8085:80"
-    networks:
-      - media-network
-    depends_on:
-      - pia-vpn
-    restart: unless-stopped
+
 
 networks:
   media-network:
