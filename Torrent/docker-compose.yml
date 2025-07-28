@@ -42,6 +42,9 @@ services:
       - PGID=1000
       - TZ=America/Chicago
       - WEBUI_PORT=8080
+      - QBT_WEBUI_AUTH=false
+      - QBT_WEBUI_PASSWORD=
+      - QBT_WEBUI_USERNAME=
     volumes:
       - ./config/qbittorrent:/config
       - /mnt/truenas/downloads:/downloads
