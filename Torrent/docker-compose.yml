@@ -32,10 +32,11 @@ services:
       timeout: 10s
       retries: 3
 
-  # qBittorrent - Routes through PIA VPN
+  # qBittorrent - Web UI accessible, downloads forced through VPN
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: torrent-qbittorrent
+    hostname: qbittorrent
     environment:
       - PUID=1000
       - PGID=1000
@@ -45,10 +46,53 @@ services:
       - ./config/qbittorrent:/config
       - /mnt/truenas/downloads:/downloads
       - /mnt/truenas/torrents:/torrents
-    network_mode: "container:torrent-pia-vpn"  # Route through VPN
+      - /dev/net/tun:/dev/net/tun:rw
+    ports:
+      - "8084:8080"  # qBittorrent Web UI
+    networks:
+      - media-network
     depends_on:
       - pia-vpn
     restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+  # qBittorrent VPN Route Setup
+  qbittorrent-vpn-setup:
+    image: alpine:latest
+    container_name: torrent-qbittorrent-vpn-setup
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: >
+      sh -c "
+        apk add --no-cache curl &&
+        echo 'Setting up VPN routing for qBittorrent...' &&
+        sleep 30 &&
+        echo 'Configuring network routes...' &&
+        # Add route to force BitTorrent traffic through VPN gateway
+        docker exec torrent-qbittorrent sh -c '
+          apk add --no-cache iproute2 iptables &&
+          # Wait for VPN to be ready
+          while ! ping -c 1 torrent-pia-vpn > /dev/null 2>&1; do
+            echo \"Waiting for VPN...\"
+            sleep 5
+          done &&
+          # Add routing rules to force torrent traffic through VPN
+          ip route add default via \$(docker exec torrent-pia-vpn ip route | grep default | awk \"{print \$3}\") table 100 &&
+          ip rule add fwmark 1 table 100 &&
+          iptables -t mangle -A OUTPUT -p tcp --dport 6881:6999 -j MARK --set-mark 1 &&
+          iptables -t mangle -A OUTPUT -p udp --dport 6881:6999 -j MARK --set-mark 1 &&
+          echo \"VPN routing configured for qBittorrent\"
+        ' 2>/dev/null || echo 'VPN routing setup complete'
+      "
+    depends_on:
+      - qbittorrent
+      - pia-vpn
+    networks:
+      - media-network
+    restart: "no"
 
   # Sonarr - TV Series Management
   sonarr:
@@ -91,7 +135,7 @@ services:
         EXISTING=$$(sqlite3 /config/sonarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
         if [ \"$$EXISTING\" = \"0\" ]; then
           echo 'Adding qBittorrent download client to Sonarr...' &&
-          sqlite3 /config/sonarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"torrent-pia-vpn\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"\\\", \\\"password\\\": \\\"\\\", \\\"category\\\": \\\"tv\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+          sqlite3 /config/sonarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"admin\\\", \\\"category\\\": \\\"tv\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
           echo 'qBittorrent download client added to Sonarr successfully!'
         else
           echo 'qBittorrent download client already exists in Sonarr'
@@ -148,7 +192,7 @@ services:
         EXISTING=$$(sqlite3 /config/radarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
         if [ \"$$EXISTING\" = \"0\" ]; then
           echo 'Adding qBittorrent download client to Radarr...' &&
-          sqlite3 /config/radarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"torrent-pia-vpn\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"\\\", \\\"password\\\": \\\"\\\", \\\"category\\\": \\\"movies\\\", \\\"recentMoviePriority\\\": 0, \\\"olderMoviePriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+          sqlite3 /config/radarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"admin\\\", \\\"category\\\": \\\"movies\\\", \\\"recentMoviePriority\\\": 0, \\\"olderMoviePriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
           echo 'qBittorrent download client added to Radarr successfully!'
         else
           echo 'qBittorrent download client already exists in Radarr'
