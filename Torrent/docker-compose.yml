@@ -239,7 +239,7 @@ services:
     volumes:
       - ./config/nginx/qbittorrent.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "8080:80"
+      - "8085:80"
     networks:
       - media-network
     depends_on:
