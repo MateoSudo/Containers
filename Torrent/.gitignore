@@ -1,0 +1,59 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.staging
+
+# PIA VPN credentials
+pia-credentials.txt
+pia-config.txt
+
+# Database files (may contain sensitive data)
+*.db
+*.db-shm
+*.db-wal
+
+# Configuration files with secrets
+config/*/config.xml
+config/*/database.db
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Docker volumes and data
+data/
+volumes/
+downloads/
+complete/
+incomplete/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Scripts with hardcoded credentials (if any)
+*credentials*
+*secret*
+*password* 
