@@ -68,6 +68,44 @@ services:
     networks:
       - media-network
     restart: unless-stopped
+    depends_on:
+      - qbittorrent
+
+  # Sonarr Initialization  
+  sonarr-init:
+    image: alpine:latest
+    container_name: torrent-sonarr-init
+    volumes:
+      - ./config/sonarr:/config
+      - /mnt/truenas/downloads:/downloads
+    command: >
+      sh -c "
+        apk add --no-cache sqlite &&
+        echo 'Waiting for Sonarr to start...' &&
+        sleep 30 &&
+        while [ ! -f /config/sonarr.db ]; do
+          echo 'Waiting for Sonarr database...'
+          sleep 5
+        done &&
+        sleep 10 &&
+        EXISTING=$$(sqlite3 /config/sonarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
+        if [ \"$$EXISTING\" = \"0\" ]; then
+          echo 'Adding qBittorrent download client to Sonarr...' &&
+          sqlite3 /config/sonarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"torrent-pia-vpn\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"adminadmin\\\", \\\"category\\\": \\\"tv\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+          echo 'qBittorrent download client added to Sonarr successfully!'
+        else
+          echo 'qBittorrent download client already exists in Sonarr'
+        fi &&
+        mkdir -p /downloads/complete/tv &&
+        mkdir -p /downloads/incomplete/tv &&
+        chown -R 1000:1000 /downloads &&
+        echo 'Sonarr download client configuration complete!'
+      "
+    depends_on:
+      - sonarr
+    networks:
+      - media-network
+    restart: "no"
 
   # Radarr - Movie Management
   radarr:
@@ -87,6 +125,44 @@ services:
     networks:
       - media-network
     restart: unless-stopped
+    depends_on:
+      - qbittorrent
+
+  # Radarr Initialization
+  radarr-init:
+    image: alpine:latest
+    container_name: torrent-radarr-init
+    volumes:
+      - ./config/radarr:/config
+      - /mnt/truenas/downloads:/downloads
+    command: >
+      sh -c "
+        apk add --no-cache sqlite &&
+        echo 'Waiting for Radarr to start...' &&
+        sleep 30 &&
+        while [ ! -f /config/radarr.db ]; do
+          echo 'Waiting for Radarr database...'
+          sleep 5
+        done &&
+        sleep 10 &&
+        EXISTING=$$(sqlite3 /config/radarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
+        if [ \"$$EXISTING\" = \"0\" ]; then
+          echo 'Adding qBittorrent download client to Radarr...' &&
+          sqlite3 /config/radarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"torrent-pia-vpn\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"adminadmin\\\", \\\"category\\\": \\\"movies\\\", \\\"recentMoviePriority\\\": 0, \\\"olderMoviePriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+          echo 'qBittorrent download client added to Radarr successfully!'
+        else
+          echo 'qBittorrent download client already exists in Radarr'
+        fi &&
+        mkdir -p /downloads/complete/movies &&
+        mkdir -p /downloads/incomplete/movies &&
+        chown -R 1000:1000 /downloads &&
+        echo 'Radarr download client configuration complete!'
+      "
+    depends_on:
+      - radarr
+    networks:
+      - media-network
+    restart: "no"
 
   # Lidarr - Music Management
   lidarr:
