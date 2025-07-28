@@ -1,7 +1,7 @@
 services:
   # PIA VPN Container - Routes all torrent traffic
   pia-vpn:
-    image: qmcgaw/private-internet-access:latest
+    image: qmcgaw/gluetun:latest
     container_name: torrent-pia-vpn
     hostname: pia-vpn
     cap_add:
@@ -9,30 +9,34 @@ services:
     devices:
       - /dev/net/tun
     environment:
+      - VPN_SERVICE_PROVIDER=private internet access
+      - VPN_TYPE=openvpn
       - OPENVPN_USER=${PIA_USER}
       - OPENVPN_PASSWORD=${PIA_PASS}
       - SERVER_REGIONS=${LOC:-netherlands}
-      - VPN_SERVICE_PROVIDER=private internet access
-      - VPN_TYPE=openvpn
       - OPENVPN_PROTOCOL=udp
       - VPN_PORT_FORWARDING=on
       - VPN_PORT_FORWARDING_STATUS_FILE=/tmp/gluetun/forwarded_port
+      - SHADOWSOCKS=on
+      - HTTPPROXY=on
+      - SOCKSPROXY=on
     volumes:
       - /tmp/gluetun:/tmp/gluetun
     ports:
-      - "8083:8080"  # qBittorrent WebUI
       - "6881:6881"  # qBittorrent TCP
       - "6881:6881/udp"  # qBittorrent UDP
+      - "8888:8888"  # HTTP proxy
+      - "8388:8388"  # SOCKS5 proxy
     networks:
       - media-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/v1/openvpn/status"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # qBittorrent - Web UI accessible, downloads forced through VPN
+  # qBittorrent - Web UI accessible on LAN, downloads forced through VPN
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: torrent-qbittorrent
@@ -42,25 +46,17 @@ services:
       - PGID=1000
       - TZ=America/Chicago
       - WEBUI_PORT=8080
-      - QBT_WEBUI_AUTH=false
-      - QBT_WEBUI_PASSWORD=
-      - QBT_WEBUI_USERNAME=
     volumes:
       - ./config/qbittorrent:/config
       - /mnt/truenas/downloads:/downloads
       - /mnt/truenas/torrents:/torrents
-      - /dev/net/tun:/dev/net/tun:rw
     ports:
-      - "8084:8080"  # qBittorrent Web UI
+      - "8084:8080"  # qBittorrent WebUI (LAN access)
     networks:
       - media-network
     depends_on:
       - pia-vpn
     restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
 
 
 
@@ -139,7 +135,7 @@ services:
         echo '🎬 Configuring Radarr...' &&
         EXISTING=$$(sqlite3 /config/radarr/radarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
         if [ \"$$EXISTING\" = \"0\" ]; then
-           sqlite3 /config/radarr/radarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"Eu66HbQV9\\\", \\\"category\\\": \\\"movies\\\", \\\"recentMoviePriority\\\": 0, \\\"olderMoviePriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+           sqlite3 /config/radarr/radarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"adminadmin\\\", \\\"category\\\": \\\"movies\\\", \\\"recentMoviePriority\\\": 0, \\\"olderMoviePriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
           echo '✅ qBittorrent added to Radarr'
         fi &&
         
@@ -147,7 +143,7 @@ services:
         echo '📺 Configuring Sonarr...' &&
         EXISTING=$$(sqlite3 /config/sonarr/sonarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
         if [ \"$$EXISTING\" = \"0\" ]; then
-           sqlite3 /config/sonarr/sonarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"Eu66HbQV9\\\", \\\"category\\\": \\\"tv\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+           sqlite3 /config/sonarr/sonarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"adminadmin\\\", \\\"category\\\": \\\"tv\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
           echo '✅ qBittorrent added to Sonarr'
         fi &&
         
@@ -155,7 +151,7 @@ services:
         echo '🎵 Configuring Lidarr...' &&
         EXISTING=$$(sqlite3 /config/lidarr/lidarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
         if [ \"$$EXISTING\" = \"0\" ]; then
-           sqlite3 /config/lidarr/lidarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"Eu66HbQV9\\\", \\\"category\\\": \\\"music\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+           sqlite3 /config/lidarr/lidarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"adminadmin\\\", \\\"category\\\": \\\"music\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
           echo '✅ qBittorrent added to Lidarr'
         fi &&
         
