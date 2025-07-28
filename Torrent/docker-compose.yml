@@ -139,7 +139,7 @@ services:
         echo '🎬 Configuring Radarr...' &&
         EXISTING=$$(sqlite3 /config/radarr/radarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
         if [ \"$$EXISTING\" = \"0\" ]; then
-          sqlite3 /config/radarr/radarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"\\\", \\\"password\\\": \\\"\\\", \\\"category\\\": \\\"movies\\\", \\\"recentMoviePriority\\\": 0, \\\"olderMoviePriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+           sqlite3 /config/radarr/radarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"Eu66HbQV9\\\", \\\"category\\\": \\\"movies\\\", \\\"recentMoviePriority\\\": 0, \\\"olderMoviePriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
           echo '✅ qBittorrent added to Radarr'
         fi &&
         
@@ -147,7 +147,7 @@ services:
         echo '📺 Configuring Sonarr...' &&
         EXISTING=$$(sqlite3 /config/sonarr/sonarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
         if [ \"$$EXISTING\" = \"0\" ]; then
-          sqlite3 /config/sonarr/sonarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"\\\", \\\"password\\\": \\\"\\\", \\\"category\\\": \\\"tv\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+           sqlite3 /config/sonarr/sonarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"Eu66HbQV9\\\", \\\"category\\\": \\\"tv\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
           echo '✅ qBittorrent added to Sonarr'
         fi &&
         
@@ -155,7 +155,7 @@ services:
         echo '🎵 Configuring Lidarr...' &&
         EXISTING=$$(sqlite3 /config/lidarr/lidarr.db \"SELECT COUNT(*) FROM DownloadClients WHERE Name='qBittorrent';\" 2>/dev/null || echo \"0\") &&
         if [ \"$$EXISTING\" = \"0\" ]; then
-          sqlite3 /config/lidarr/lidarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"\\\", \\\"password\\\": \\\"\\\", \\\"category\\\": \\\"music\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
+           sqlite3 /config/lidarr/lidarr.db \"INSERT INTO DownloadClients (Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads) VALUES (1, 'qBittorrent', 'QBittorrent', '{\\\"host\\\": \\\"qbittorrent\\\", \\\"port\\\": 8080, \\\"username\\\": \\\"admin\\\", \\\"password\\\": \\\"Eu66HbQV9\\\", \\\"category\\\": \\\"music\\\", \\\"recentTvPriority\\\": 0, \\\"olderTvPriority\\\": 0, \\\"initialState\\\": 0, \\\"sequentialOrder\\\": false, \\\"firstAndLast\\\": false, \\\"useSsl\\\": false, \\\"urlBase\\\": \\\"\\\"}', 'QBittorrentSettings', 1, 1, 1);\" &&
           echo '✅ qBittorrent added to Lidarr'
         fi &&
         
