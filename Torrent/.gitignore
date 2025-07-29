@@ -4,6 +4,23 @@
 .env.production
 .env.staging
 
+# Resume files
+*.resume
+
+# Torrent and magnet files
+*.torrent
+*.magnet
+
+# YAML files (except CI/CD and Docker Compose)
+*.yml
+*.yaml
+# Allow CI/CD and Docker Compose YAML files
+!.github/
+!.gitlab-ci.yml
+!.travis.yml
+!docker-compose*.yml
+!docker-compose*.yaml
+
 # PIA VPN credentials
 pia-credentials.txt
 pia-config.txt

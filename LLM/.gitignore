@@ -1,0 +1,90 @@
+# Configuration files with sensitive data
+config.env
+.env
+
+# Resume files
+*.resume
+
+# YAML files (except CI/CD and Docker Compose)
+*.yml
+*.yaml
+# Allow CI/CD and Docker Compose YAML files
+!.github/
+!.gitlab-ci.yml
+!.travis.yml
+!docker-compose*.yml
+!docker-compose*.yaml
+
+# Model files (can be very large)
+models/
+*.gguf
+*.bin
+*.safetensors
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Dataset files
+datasets/
+*.csv
+*.json
+*.parquet
+
+# Log files
+*.log
+logs/
+
+# Docker volumes
+volumes/
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.backup
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/ 

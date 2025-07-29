@@ -75,7 +75,8 @@ services:
     ports:
       - "8989:8989"
     networks:
-      - media-network
+      media-network:
+        ipv4_address: 172.19.0.5
     restart: unless-stopped
     depends_on:
       - transmission
@@ -97,7 +98,8 @@ services:
     ports:
       - "7878:7878"
     networks:
-      - media-network
+      media-network:
+        ipv4_address: 172.19.0.6
     restart: unless-stopped
     depends_on:
       - transmission
@@ -119,7 +121,8 @@ services:
     ports:
       - "8686:8686"
     networks:
-      - media-network
+      media-network:
+        ipv4_address: 172.19.0.7
     restart: unless-stopped
     depends_on:
       - transmission
@@ -174,10 +177,9 @@ services:
     ports:
       - "8096:8096"
     networks:
-      - media-network
+      media-network:
+        ipv4_address: 172.19.0.8
     restart: unless-stopped
-
-
 
 networks:
   media-network:

@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # Open WebUI for LLM interface
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    environment:
+      - WEBUI_SECRET_KEY=your-secret-key-here
+      - DEFAULT_MODELS=llama2:7b,llama2:13b,llama2:70b
+      - ENABLE_SIGNUP=true
+      - ENABLE_LOGIN_FORM=true
+    volumes:
+      - open-webui-data:/app/backend/data
+      - ./models:/app/backend/data/models
+    networks:
+      - llm-network
+    depends_on:
+      - ollama
+
+  # Ollama for running LLMs
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+      - ./models:/root/.ollama/models
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    networks:
+      - llm-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amdgpu
+              count: all
+              capabilities: [gpu]
+
+  # Jupyter Notebook server for training
+  jupyter:
+    image: jupyter/tensorflow-notebook:latest
+    container_name: jupyter-notebook
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=your-jupyter-token-here
+    volumes:
+      - jupyter-data:/home/jovyan/work
+      - ./notebooks:/home/jovyan/work/notebooks
+      - ./datasets:/home/jovyan/work/datasets
+      - ./models:/home/jovyan/work/models
+    networks:
+      - llm-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amdgpu
+              count: all
+              capabilities: [gpu]
+
+  # Optional: Text Generation WebUI (alternative to Open WebUI)
+  text-generation-webui:
+    image: ghcr.io/oobabooga/text-generation-webui:main
+    container_name: text-generation-webui
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - CLI_ARGS=--listen --api --enable-extensions
+    volumes:
+      - text-gen-webui-data:/app/text-generation-webui
+      - ./models:/app/text-generation-webui/models
+    networks:
+      - llm-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amdgpu
+              count: all
+              capabilities: [gpu]
+
+  # Optional: Redis for caching (if needed)
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - llm-network
+
+  # Optional: PostgreSQL for storing conversation history
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=llm_db
+      - POSTGRES_USER=llm_user
+      - POSTGRES_PASSWORD=your-postgres-password-here
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - llm-network
+
+volumes:
+  open-webui-data:
+  ollama-data:
+  jupyter-data:
+  text-gen-webui-data:
+  redis-data:
+  postgres-data:
+
+networks:
+  llm-network:
+    driver: bridge 
