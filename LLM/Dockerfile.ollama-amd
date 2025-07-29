@@ -1,0 +1,25 @@
+FROM rocm/dev-ubuntu-22.04:latest
+
+# Install Ollama
+RUN curl -fsSL https://ollama.ai/install.sh | sh
+
+# Install additional dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    gnupg2 \
+    software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables for AMD GPU
+ENV HIP_VISIBLE_DEVICES=0
+ENV ROCR_VISIBLE_DEVICES=0
+
+# Create GPU device directory
+RUN mkdir -p /dev/dri
+
+# Expose GPU devices
+VOLUME ["/dev/dri"]
+
+# Set the correct entrypoint for Ollama
+ENTRYPOINT ["/usr/local/bin/ollama", "serve"] 

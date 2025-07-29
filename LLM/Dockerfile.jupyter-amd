@@ -1,0 +1,26 @@
+FROM rocm/pytorch:rocm5.6_ubuntu22.04_py3.10_pytorch_2.0.1
+
+USER root
+
+# Install additional dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    gnupg2 \
+    software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install additional ML libraries
+RUN pip install transformers datasets accelerate bitsandbytes jupyter jupyterlab
+
+# Set environment variables for AMD GPU
+ENV HIP_VISIBLE_DEVICES=0
+ENV ROCR_VISIBLE_DEVICES=0
+
+# Create GPU device directory
+RUN mkdir -p /dev/dri
+
+# Expose GPU devices
+VOLUME ["/dev/dri"]
+
+USER ${NB_UID} 

@@ -1,0 +1,21 @@
+FROM ollama/ollama:rocm
+
+# Copy the startup script
+COPY start-kfd.sh /start-kfd.sh
+
+# Install necessary tools for module loading
+RUN apt-get update && apt-get install -y kmod
+
+# Set environment variables for AMD GPU
+ENV ROCR_VISIBLE_DEVICES=0
+ENV HIP_VISIBLE_DEVICES=0
+ENV HSA_OVERRIDE_GFX_VERSION=11.0.0
+
+# Create GPU device directories
+RUN mkdir -p /dev/dri /dev/kfd
+
+# Expose GPU devices
+VOLUME ["/dev/dri", "/dev/kfd"]
+
+# Use the startup script as entrypoint
+ENTRYPOINT ["/start-kfd.sh"] 

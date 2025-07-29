@@ -1,0 +1,20 @@
+FROM ollama/ollama:rocm
+
+# Copy ROCm runtime from host
+COPY --from=debian:bookworm-slim /opt/rocm-5.7.3 /opt/rocm-5.7.3
+
+# Set environment variables
+ENV ROCR_VISIBLE_DEVICES=0
+ENV HIP_VISIBLE_DEVICES=0
+ENV HSA_OVERRIDE_GFX_VERSION=11.0.0
+ENV PATH="/opt/rocm-5.7.3/bin:$PATH"
+ENV LD_LIBRARY_PATH="/opt/rocm-5.7.3/lib:$LD_LIBRARY_PATH"
+
+# Create symlinks for ROCm
+RUN ln -sf /opt/rocm-5.7.3 /opt/rocm
+
+# Expose GPU devices
+VOLUME ["/dev/dri", "/dev/kfd"]
+
+# Set the correct entrypoint for Ollama
+ENTRYPOINT ["/bin/ollama", "serve"] 
