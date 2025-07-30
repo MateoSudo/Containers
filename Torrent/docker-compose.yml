@@ -1,5 +1,5 @@
 services:
-  # PIA VPN Container - Routes all torrent traffic
+  # PIA VPN Container - Routes torrent traffic only
   pia-vpn:
     image: qmcgaw/gluetun:latest
     container_name: torrent-pia-vpn
@@ -26,8 +26,6 @@ services:
       - "51413:51413"  # Transmission TCP
       - "51413:51413/udp"  # Transmission UDP
       - "9091:9091"  # Transmission WebUI through VPN
-      - "9696:9696"  # Prowlarr WebUI through VPN
-      - "9117:9117"  # Jackett WebUI through VPN
       - "8888:8888"  # HTTP proxy
       - "8388:8388"  # SOCKS5 proxy
     networks:
@@ -127,26 +125,30 @@ services:
     depends_on:
       - transmission
 
-  # Prowlarr - Indexer Management (VPN enabled)
+  # Prowlarr - Indexer Management (FIXED: No VPN routing for web interface)
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: torrent-prowlarr
+    hostname: prowlarr
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=America/Chicago
     volumes:
       - ./config/prowlarr:/config
-    # Route through VPN to bypass Cloudflare DNS blocks
-    network_mode: "service:pia-vpn"
-    depends_on:
-      - pia-vpn
+    # FIXED: Use normal network instead of VPN for web interface
+    ports:
+      - "9696:9696"
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.9
     restart: unless-stopped
 
-  # Jackett - Alternative Indexer (Backup) (VPN enabled)
+  # Jackett - Alternative Indexer (Backup) (FIXED: No VPN routing for web interface)
   jackett:
     image: lscr.io/linuxserver/jackett:latest
     container_name: torrent-jackett
+    hostname: jackett
     environment:
       - PUID=1000
       - PGID=1000
@@ -154,10 +156,12 @@ services:
       - AUTO_UPDATE=true
     volumes:
       - ./config/jackett:/config
-    # Route through VPN to bypass Cloudflare DNS blocks
-    network_mode: "service:pia-vpn"
-    depends_on:
-      - pia-vpn
+    # FIXED: Use normal network instead of VPN for web interface
+    ports:
+      - "9117:9117"
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.10
     restart: unless-stopped
 
   # Jellyfin - Media Server

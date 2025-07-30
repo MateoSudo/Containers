@@ -26,6 +26,8 @@ services:
       - "51413:51413"  # Transmission TCP
       - "51413:51413/udp"  # Transmission UDP
       - "9091:9091"  # Transmission WebUI through VPN
+      - "9696:9696"  # Prowlarr WebUI through VPN
+      - "9117:9117"  # Jackett WebUI through VPN
       - "8888:8888"  # HTTP proxy
       - "8388:8388"  # SOCKS5 proxy
     networks:
@@ -69,10 +71,12 @@ services:
       - ./config/sonarr:/config
       - /mnt/truenas/media/tv:/tv
       - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/downloads/complete/tv:/downloads/complete/sonarr
     ports:
       - "8989:8989"
     networks:
-      - media-network
+      media-network:
+        ipv4_address: 172.19.0.5
     restart: unless-stopped
     depends_on:
       - transmission
@@ -90,10 +94,12 @@ services:
       - ./config/radarr:/config
       - /mnt/truenas/media/movies:/movies
       - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/downloads/complete/movies:/downloads/complete/radarr
     ports:
       - "7878:7878"
     networks:
-      - media-network
+      media-network:
+        ipv4_address: 172.19.0.6
     restart: unless-stopped
     depends_on:
       - transmission
@@ -111,36 +117,36 @@ services:
       - ./config/lidarr:/config
       - /mnt/truenas/media/music:/music
       - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/downloads/complete/music:/downloads/complete/lidarr
     ports:
       - "8686:8686"
     networks:
-      - media-network
+      media-network:
+        ipv4_address: 172.19.0.7
     restart: unless-stopped
     depends_on:
       - transmission
 
-  # Prowlarr - Indexer Management
+  # Prowlarr - Indexer Management (VPN enabled)
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: torrent-prowlarr
-    hostname: prowlarr
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=America/Chicago
     volumes:
       - ./config/prowlarr:/config
-    ports:
-      - "9696:9696"
-    networks:
-      - media-network
+    # Route through VPN to bypass Cloudflare DNS blocks
+    network_mode: "service:pia-vpn"
+    depends_on:
+      - pia-vpn
     restart: unless-stopped
 
-  # Jackett - Alternative Indexer (Backup)
+  # Jackett - Alternative Indexer (Backup) (VPN enabled)
   jackett:
     image: lscr.io/linuxserver/jackett:latest
     container_name: torrent-jackett
-    hostname: jackett
     environment:
       - PUID=1000
       - PGID=1000
@@ -148,10 +154,10 @@ services:
       - AUTO_UPDATE=true
     volumes:
       - ./config/jackett:/config
-    ports:
-      - "9117:9117"
-    networks:
-      - media-network
+    # Route through VPN to bypass Cloudflare DNS blocks
+    network_mode: "service:pia-vpn"
+    depends_on:
+      - pia-vpn
     restart: unless-stopped
 
   # Jellyfin - Media Server
@@ -171,93 +177,9 @@ services:
     ports:
       - "8096:8096"
     networks:
-      - media-network
+      media-network:
+        ipv4_address: 172.19.0.8
     restart: unless-stopped
-
-  # Initialize download clients for arr services
-  arr-services-init:
-    image: alpine:latest
-    container_name: torrent-arr-services-init
-    volumes:
-      - ./config:/config
-    depends_on:
-      - radarr
-      - sonarr
-      - lidarr
-      - transmission
-      - prowlarr
-    command: |
-      sh -c '
-        echo "Installing sqlite3 and curl..."
-        apk add --no-cache sqlite curl
-        
-        echo "Waiting for services to start..."
-        sleep 60
-        
-        echo "Configuring Radarr with Transmission..."
-        sqlite3 /config/radarr/radarr.db "
-        INSERT OR REPLACE INTO DownloadClients (
-          Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads
-        ) VALUES (
-          1,
-          \"Transmission\",
-          \"Transmission\", 
-          \"{\\\"host\\\": \\\"172.19.0.4\\\", \\\"port\\\": 9091, \\\"username\\\": \\\"\\\", \\\"password\\\": \\\"\\\", \\\"category\\\": \\\"movies\\\", \\\"urlBase\\\": \\\"/transmission/\\\"}\",
-          \"TransmissionSettings\",
-          1, 1, 1
-        );"
-        
-        echo "Configuring Sonarr with Transmission..."
-        sqlite3 /config/sonarr/sonarr.db "
-        INSERT OR REPLACE INTO DownloadClients (
-          Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads
-        ) VALUES (
-          1,
-          \"Transmission\",
-          \"Transmission\", 
-          \"{\\\"host\\\": \\\"172.19.0.4\\\", \\\"port\\\": 9091, \\\"username\\\": \\\"\\\", \\\"password\\\": \\\"\\\", \\\"category\\\": \\\"tv\\\", \\\"urlBase\\\": \\\"/transmission/\\\"}\",
-          \"TransmissionSettings\",
-          1, 1, 1
-        );"
-        
-        echo "Configuring Lidarr with Transmission..."
-        sqlite3 /config/lidarr/lidarr.db "
-        INSERT OR REPLACE INTO DownloadClients (
-          Enable, Name, Implementation, Settings, ConfigContract, Priority, RemoveCompletedDownloads, RemoveFailedDownloads
-        ) VALUES (
-          1,
-          \"Transmission\",
-          \"Transmission\", 
-          \"{\\\"host\\\": \\\"172.19.0.4\\\", \\\"port\\\": 9091, \\\"username\\\": \\\"\\\", \\\"password\\\": \\\"\\\", \\\"category\\\": \\\"music\\\", \\\"urlBase\\\": \\\"/transmission/\\\"}\",
-          \"TransmissionSettings\",
-          1, 1, 1
-        );"
-        
-        echo "Download clients configured successfully!"
-        
-        echo "Configuring Prowlarr with popular indexers..."
-        # Wait for Prowlarr to be ready
-        until curl -s http://prowlarr:9696/api/v1/system/status >/dev/null 2>&1; do
-          echo "Waiting for Prowlarr to be ready..."
-          sleep 10
-        done
-        
-        echo "Prowlarr is ready, configuring indexers..."
-        
-        # Add popular indexers to Prowlarr
-        echo "Adding popular indexers to Prowlarr..."
-        
-        # Configure Prowlarr to add some popular indexers automatically
-        # Note: This is a simplified approach - in production you'd want to add specific indexers
-        
-        echo "Indexer configuration completed!"
-        
-        mkdir -p /downloads/complete/{movies,tv,music}
-        mkdir -p /downloads/incomplete
-        chown -R 1000:1000 /downloads
-      '
-    networks:
-      - media-network
 
 networks:
   media-network:

@@ -1,0 +1,13 @@
+[Unit]
+Description=Create TUN device for Docker containers
+Before=docker.service
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/Git/Containers/Torrent/fix-tun-device.sh
+RemainAfterExit=yes
+User=root
+
+[Install]
+WantedBy=multi-user.target 
