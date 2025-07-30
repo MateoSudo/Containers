@@ -8,6 +8,7 @@ Your media stack is now configured with:
 - **Direct port access** for all services
 - **Cosmos SSO** for web interfaces
 - **No authentication** for TVs and devices
+- **Local network access** (192.168.1.0/24) without authentication
 - **SSL termination** handled by Cosmos
 
 ## 📋 Current Configuration
@@ -90,8 +91,14 @@ In Cosmos, set up authentication for each app:
 - **No login required** - TVs stay connected permanently
 - **No Cosmos authentication** - direct access to Jellyfin
 
-**Web Interface (Optional for TVs):**
-- TVs can also access via Cosmos: `https://jellyfin.mrintellisense.com`
+**Web Interface via Cosmos (Local Network):**
+- TVs on 192.168.1.x network: `https://jellyfin.mrintellisense.com`
+- **No authentication required** for local network devices
+- **SSL certificates** handled by Cosmos
+- **Works with all smart TVs** and streaming devices
+
+**Web Interface via Cosmos (External):**
+- External devices: `https://jellyfin.mrintellisense.com`
 - **Requires login** through Cosmos SSO
 - **SSL certificates** handled by Cosmos
 
@@ -102,8 +109,13 @@ In Cosmos, set up authentication for each app:
 - **No authentication** - stays logged in
 - **Works offline** and with background sync
 
-**Web Browser:**
-- Use Cosmos URL: `https://jellyfin.mrintellisense.com`
+**Web Browser (Local Network):**
+- Devices on 192.168.1.x network: `https://jellyfin.mrintellisense.com`
+- **No authentication required** for local network
+- **SSL certificates** provided by Cosmos
+
+**Web Browser (External):**
+- External devices: `https://jellyfin.mrintellisense.com`
 - **SSO authentication** required
 - **SSL certificates** provided by Cosmos
 
@@ -209,9 +221,10 @@ If SSO isn't working:
 
 ### For Security
 1. **TVs bypass authentication** (intentional)
-2. **Web access requires SSO** (secure)
-3. **SSL termination** at Cosmos level
-4. **Session management** for web users
+2. **Local network access** (192.168.1.0/24) without authentication
+3. **External web access requires SSO** (secure)
+4. **SSL termination** at Cosmos level
+5. **Session management** for web users
 
 ## ✅ Verification Checklist
 
@@ -222,14 +235,16 @@ If SSO isn't working:
 - [ ] Authentication enabled in Cosmos
 - [ ] SSL certificates working
 - [ ] TVs can connect directly to Jellyfin
-- [ ] Web access requires Cosmos login
+- [ ] Local network (192.168.1.x) access without authentication
+- [ ] External web access requires Cosmos login
 - [ ] All services accessible via clean URLs
 
 ## 🎉 Success!
 
 Once completed, you'll have:
 - **TVs and devices** that stay logged in permanently
-- **Web management** with single sign-on
+- **Local network access** (192.168.1.x) without authentication
+- **Web management** with single sign-on for external access
 - **SSL certificates** automatically managed
 - **Clean URLs** for all services
 - **Centralized authentication** through Cosmos
