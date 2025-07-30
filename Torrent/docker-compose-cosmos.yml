@@ -1,0 +1,188 @@
+version: '3.8'
+
+services:
+  # PIA VPN Container - Routes torrent traffic only
+  pia-vpn:
+    image: qmcgaw/gluetun:latest
+    container_name: torrent-pia-vpn
+    hostname: pia-vpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=private internet access
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=${PIA_USER}
+      - OPENVPN_PASSWORD=${PIA_PASS}
+      - SERVER_REGIONS=${LOC:-netherlands}
+      - OPENVPN_PROTOCOL=udp
+      - VPN_PORT_FORWARDING=on
+      - VPN_PORT_FORWARDING_STATUS_FILE=/tmp/gluetun/forwarded_port
+      - SHADOWSOCKS=on
+      - HTTPPROXY=on
+      - SOCKSPROXY=on
+    volumes:
+      - /tmp/gluetun:/tmp/gluetun
+    # Only expose torrent ports, let Cosmos handle web UI routing
+    ports:
+      - "51413:51413"  # Transmission TCP
+      - "51413:51413/udp"  # Transmission UDP
+      - "8888:8888"  # HTTP proxy
+      - "8388:8388"  # SOCKS5 proxy
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.4
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/v1/openvpn/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Transmission - Torrent client through VPN
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: torrent-transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/transmission:/config
+      - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/torrents:/watch
+    # Transmission uses VPN container's network (no hostname when using network_mode)
+    network_mode: "service:pia-vpn"  # Route traffic through VPN
+    depends_on:
+      - pia-vpn
+    restart: unless-stopped
+
+  # Sonarr - TV Series Management
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: torrent-sonarr
+    hostname: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/sonarr:/config
+      - /mnt/truenas/media/tv:/tv
+      - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/downloads/complete/tv:/downloads/complete/sonarr
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.5
+    restart: unless-stopped
+    depends_on:
+      - transmission
+    # No direct port exposure - Cosmos will handle routing
+
+  # Radarr - Movie Management
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: torrent-radarr
+    hostname: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/radarr:/config
+      - /mnt/truenas/media/movies:/movies
+      - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/downloads/complete/movies:/downloads/complete/radarr
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.6
+    restart: unless-stopped
+    depends_on:
+      - transmission
+    # No direct port exposure - Cosmos will handle routing
+
+  # Lidarr - Music Management
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: torrent-lidarr
+    hostname: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/lidarr:/config
+      - /mnt/truenas/media/music:/music
+      - /mnt/truenas/downloads:/downloads
+      - /mnt/truenas/downloads/complete/music:/downloads/complete/lidarr
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.7
+    restart: unless-stopped
+    depends_on:
+      - transmission
+    # No direct port exposure - Cosmos will handle routing
+
+  # Prowlarr - Indexer Management
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: torrent-prowlarr
+    hostname: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/prowlarr:/config
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.9
+    restart: unless-stopped
+    # No direct port exposure - Cosmos will handle routing
+
+  # Jackett - Alternative Indexer
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: torrent-jackett
+    hostname: jackett
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+      - AUTO_UPDATE=true
+    volumes:
+      - ./config/jackett:/config
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.10
+    restart: unless-stopped
+    # No direct port exposure - Cosmos will handle routing
+
+  # Jellyfin - Media Server
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: torrent-jellyfin
+    hostname: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - ./config/jellyfin:/config
+      - /mnt/truenas/media/tv:/data/tv
+      - /mnt/truenas/media/movies:/data/movies
+      - /mnt/truenas/media/music:/data/music
+    networks:
+      media-network:
+        ipv4_address: 172.19.0.8
+    restart: unless-stopped
+    # No direct port exposure - Cosmos will handle routing
+
+networks:
+  media-network:
+    name: media_network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16 
