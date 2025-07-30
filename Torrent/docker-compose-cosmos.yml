@@ -72,13 +72,14 @@ services:
       - /mnt/truenas/media/tv:/tv
       - /mnt/truenas/downloads:/downloads
       - /mnt/truenas/downloads/complete/tv:/downloads/complete/sonarr
+    ports:
+      - "8989:8989"
     networks:
       media-network:
         ipv4_address: 172.19.0.5
     restart: unless-stopped
     depends_on:
       - transmission
-    # No direct port exposure - Cosmos will handle routing
 
   # Radarr - Movie Management
   radarr:
@@ -94,13 +95,14 @@ services:
       - /mnt/truenas/media/movies:/movies
       - /mnt/truenas/downloads:/downloads
       - /mnt/truenas/downloads/complete/movies:/downloads/complete/radarr
+    ports:
+      - "7878:7878"
     networks:
       media-network:
         ipv4_address: 172.19.0.6
     restart: unless-stopped
     depends_on:
       - transmission
-    # No direct port exposure - Cosmos will handle routing
 
   # Lidarr - Music Management
   lidarr:
@@ -116,13 +118,14 @@ services:
       - /mnt/truenas/media/music:/music
       - /mnt/truenas/downloads:/downloads
       - /mnt/truenas/downloads/complete/music:/downloads/complete/lidarr
+    ports:
+      - "8686:8686"
     networks:
       media-network:
         ipv4_address: 172.19.0.7
     restart: unless-stopped
     depends_on:
       - transmission
-    # No direct port exposure - Cosmos will handle routing
 
   # Prowlarr - Indexer Management
   prowlarr:
@@ -135,11 +138,12 @@ services:
       - TZ=America/Chicago
     volumes:
       - ./config/prowlarr:/config
+    ports:
+      - "9696:9696"
     networks:
       media-network:
         ipv4_address: 172.19.0.9
     restart: unless-stopped
-    # No direct port exposure - Cosmos will handle routing
 
   # Jackett - Alternative Indexer
   jackett:
@@ -153,11 +157,12 @@ services:
       - AUTO_UPDATE=true
     volumes:
       - ./config/jackett:/config
+    ports:
+      - "9117:9117"
     networks:
       media-network:
         ipv4_address: 172.19.0.10
     restart: unless-stopped
-    # No direct port exposure - Cosmos will handle routing
 
   # Jellyfin - Media Server
   jellyfin:
@@ -173,11 +178,12 @@ services:
       - /mnt/truenas/media/tv:/data/tv
       - /mnt/truenas/media/movies:/data/movies
       - /mnt/truenas/media/music:/data/music
+    ports:
+      - "8096:8096"
     networks:
       media-network:
         ipv4_address: 172.19.0.8
     restart: unless-stopped
-    # No direct port exposure - Cosmos will handle routing
 
 networks:
   media-network:
