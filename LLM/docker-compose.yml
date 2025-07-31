@@ -5,12 +5,13 @@ services:
     container_name: open-webui
     restart: unless-stopped
     ports:
-      - "3000:8080"
+      - "3001:8080"
     environment:
       - WEBUI_SECRET_KEY=your-secret-key-here
       - DEFAULT_MODELS=llama2:7b,llama2:13b,llama2:70b
       - ENABLE_SIGNUP=true
       - ENABLE_LOGIN_FORM=true
+      - OLLAMA_BASE_URL=http://ollama:11434
     volumes:
       - open-webui-data:/app/backend/data
       - ./models:/app/backend/data/models
@@ -42,7 +43,7 @@ services:
       - /dev/kfd:/dev/kfd
     privileged: true
 
-  # Jupyter Notebook server for training
+  # Jupyter Notebook server with GPU support
   jupyter:
     build:
       context: .
@@ -50,13 +51,14 @@ services:
     container_name: jupyter-notebook
     restart: unless-stopped
     ports:
-      - "8888:8888"
+      - "8889:8888"
     environment:
       - JUPYTER_ENABLE_LAB=yes
       - JUPYTER_TOKEN=your-jupyter-token-here
       - HIP_VISIBLE_DEVICES=0
       - ROCR_VISIBLE_DEVICES=0
       - HSA_OVERRIDE_GFX_VERSION=11.0.0
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - jupyter-data:/home/jovyan/work
       - ./notebooks:/home/jovyan/work/notebooks

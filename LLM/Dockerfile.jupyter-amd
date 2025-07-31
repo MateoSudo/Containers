@@ -1,4 +1,4 @@
-FROM rocm/pytorch:rocm5.6_ubuntu22.04_py3.10_pytorch_2.0.1
+FROM rocm/pytorch:rocm5.7.3_ubuntu22.04_py3.10_pytorch_2.1.1
 
 USER root
 
@@ -16,6 +16,7 @@ RUN pip install transformers datasets accelerate bitsandbytes jupyter jupyterlab
 # Set environment variables for AMD GPU
 ENV HIP_VISIBLE_DEVICES=0
 ENV ROCR_VISIBLE_DEVICES=0
+ENV HSA_OVERRIDE_GFX_VERSION=11.0.0
 
 # Create GPU device directory
 RUN mkdir -p /dev/dri

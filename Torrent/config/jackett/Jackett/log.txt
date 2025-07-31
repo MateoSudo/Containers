@@ -318,3 +318,87 @@
 2025-07-29 23:40:45.1646 Info Jackett startup finished in 3.649 s
 2025-07-30 00:40:45.0111 Info Checking for updates... Jackett variant: CoreLinuxMuslAmdx64
 2025-07-30 00:40:45.3220 Info Jackett is already updated. Current version: v0.22.2207
+2025-07-30 19:47:03.0614 Info Starting Jackett v0.22.2207
+2025-07-30 19:47:03.6793 Info Environment version: 8.0.18 (/app/Jackett/)
+2025-07-30 19:47:03.6870 Info OS version: Unix 6.8.12.13 (64bit OS) (64bit process)
+2025-07-30 19:47:03.6900 Info Jackett variant: CoreLinuxMuslAmdx64
+2025-07-30 19:47:03.6905 Info File /etc/issue: Welcome to Alpine Linux 3.22
+2025-07-30 19:47:03.6905 Info Running in Docker: Yes (image build: v0.22.2202-ls105)
+2025-07-30 19:47:03.6920 Info ThreadPool MaxThreads: 32767 workerThreads, 1000 completionPortThreads
+2025-07-30 19:47:03.6920 Info App config/log directory: /config/Jackett
+2025-07-30 19:47:03.6940 Info Using proxy: Disabled
+2025-07-30 19:47:03.6940 Info Using FlareSolverr: No
+2025-07-30 19:47:03.6955 Info Using HTTP Client: HttpWebClient2
+2025-07-30 19:47:03.6986 Info Loading Native indexers ...
+2025-07-30 19:47:03.7426 Info Loaded 76 Native indexers.
+2025-07-30 19:47:03.7457 Info Loading Cardigann indexers from: /config/cardigann/definitions/, /etc/xdg/cardigan/definitions/, /app/Jackett/Definitions
+2025-07-30 19:47:07.2126 Info Loaded 517 Cardigann indexers.
+2025-07-30 19:47:07.2126 Info Loaded 593 indexers in total
+2025-07-30 19:47:07.2205 Info Adding aggregate indexer ('all' indexer) ...
+2025-07-30 19:47:07.2321 Info Adding filter indexer ('type:public' indexer) ...
+2025-07-30 19:47:07.2324 Info Adding filter indexer ('type:private' indexer) ...
+2025-07-30 19:47:07.2324 Info Adding filter indexer ('type:semi-public' indexer) ...
+2025-07-30 19:47:07.4012 Info Jackett startup finished in 4.937 s
+2025-07-30 20:47:07.2408 Info Checking for updates... Jackett variant: CoreLinuxMuslAmdx64
+2025-07-30 20:47:12.2921 Error Error checking for updates.
+System.Net.Http.HttpRequestException: Resource temporarily unavailable (api.github.com:443)
+ ---> System.Net.Sockets.SocketException (11): Resource temporarily unavailable
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.DecompressionHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at FlareSolverrSharp.ClearanceHandler.SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at Jackett.Common.Utils.Clients.HttpWebClient2.Run(WebRequest webRequest) in ./Jackett.Common/Utils/Clients/HttpWebClient2.cs:line 180
+   at Jackett.Common.Utils.Clients.WebClient.GetResultAsync(WebRequest request) in ./Jackett.Common/Utils/Clients/WebClient.cs:line 188
+   at Jackett.Common.Services.UpdateService.CheckForUpdates() in ./Jackett.Common/Services/UpdateService.cs:line 118
+2025-07-30 21:14:51.7432 Info Starting Jackett v0.22.2207
+2025-07-30 21:14:52.3866 Info Environment version: 8.0.18 (/app/Jackett/)
+2025-07-30 21:14:52.3943 Info OS version: Unix 6.8.12.13 (64bit OS) (64bit process)
+2025-07-30 21:14:52.3975 Info Jackett variant: CoreLinuxMuslAmdx64
+2025-07-30 21:14:52.3982 Info File /etc/issue: Welcome to Alpine Linux 3.22
+2025-07-30 21:14:52.3982 Info Running in Docker: Yes (image build: v0.22.2202-ls105)
+2025-07-30 21:14:52.3997 Info ThreadPool MaxThreads: 32767 workerThreads, 1000 completionPortThreads
+2025-07-30 21:14:52.3997 Info App config/log directory: /config/Jackett
+2025-07-30 21:14:52.4017 Info Using proxy: Disabled
+2025-07-30 21:14:52.4017 Info Using FlareSolverr: No
+2025-07-30 21:14:52.4031 Info Using HTTP Client: HttpWebClient2
+2025-07-30 21:14:52.4062 Info Loading Native indexers ...
+2025-07-30 21:14:52.4541 Info Loaded 76 Native indexers.
+2025-07-30 21:14:52.4578 Info Loading Cardigann indexers from: /config/cardigann/definitions/, /etc/xdg/cardigan/definitions/, /app/Jackett/Definitions
+2025-07-30 21:14:56.0287 Info Loaded 517 Cardigann indexers.
+2025-07-30 21:14:56.0291 Info Loaded 593 indexers in total
+2025-07-30 21:14:56.0358 Info Adding aggregate indexer ('all' indexer) ...
+2025-07-30 21:14:56.0472 Info Adding filter indexer ('type:public' indexer) ...
+2025-07-30 21:14:56.0472 Info Adding filter indexer ('type:private' indexer) ...
+2025-07-30 21:14:56.0472 Info Adding filter indexer ('type:semi-public' indexer) ...
+2025-07-30 21:14:56.2221 Info Jackett startup finished in 5.073 s
+2025-07-30 22:03:55.4381 Info Starting Jackett v0.22.2207
+2025-07-30 22:03:56.0968 Info Environment version: 8.0.18 (/app/Jackett/)
+2025-07-30 22:03:56.1046 Info OS version: Unix 6.8.12.13 (64bit OS) (64bit process)
+2025-07-30 22:03:56.1077 Info Jackett variant: CoreLinuxMuslAmdx64
+2025-07-30 22:03:56.1082 Info File /etc/issue: Welcome to Alpine Linux 3.22
+2025-07-30 22:03:56.1082 Info Running in Docker: Yes (image build: v0.22.2202-ls105)
+2025-07-30 22:03:56.1096 Info ThreadPool MaxThreads: 32767 workerThreads, 1000 completionPortThreads
+2025-07-30 22:03:56.1096 Info App config/log directory: /config/Jackett
+2025-07-30 22:03:56.1119 Info Using proxy: Disabled
+2025-07-30 22:03:56.1119 Info Using FlareSolverr: No
+2025-07-30 22:03:56.1133 Info Using HTTP Client: HttpWebClient2
+2025-07-30 22:03:56.1166 Info Loading Native indexers ...
+2025-07-30 22:03:56.1608 Info Loaded 76 Native indexers.
+2025-07-30 22:03:56.1638 Info Loading Cardigann indexers from: /config/cardigann/definitions/, /etc/xdg/cardigan/definitions/, /app/Jackett/Definitions
+2025-07-30 22:03:59.3368 Info Loaded 517 Cardigann indexers.
+2025-07-30 22:03:59.3368 Info Loaded 593 indexers in total
+2025-07-30 22:03:59.3446 Info Adding aggregate indexer ('all' indexer) ...
+2025-07-30 22:03:59.3566 Info Adding filter indexer ('type:public' indexer) ...
+2025-07-30 22:03:59.3566 Info Adding filter indexer ('type:private' indexer) ...
+2025-07-30 22:03:59.3574 Info Adding filter indexer ('type:semi-public' indexer) ...
+2025-07-30 22:03:59.5416 Info Jackett startup finished in 4.689 s
